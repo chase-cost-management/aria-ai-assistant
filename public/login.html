@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aria - CCMs AI Assistant - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .auth-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+            width: 100%;
+            max-width: 450px;
+            padding: 0;
+        }
+
+        .auth-left {
+            background: #094F90;
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            color: white;
+            text-align: center;
+        }
+
+        .auth-left h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+
+        .auth-left p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .auth-right {
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .auth-form {
+            display: none !important;
+        }
+
+        .auth-form.active {
+            display: block !important;
+        }
+
+        .form-title {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .form-subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #094F90;
+            box-shadow: 0 0 0 3px rgba(9, 79, 144, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: #094F90;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(9, 79, 144, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .switch-form {
+            text-align: center;
+            color: #666;
+        }
+
+        .switch-form a {
+            color: #094F90;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .switch-form a:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #094F90;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .auth-container {
+                grid-template-columns: 1fr;
+                max-width: 400px;
+            }
+
+            .auth-left {
+                padding: 40px 30px;
+            }
+
+            .auth-left h1 {
+                font-size: 2em;
+            }
+
+            .auth-right {
+                padding: 40px 30px;
+            }
+        }
+
+        .email-note {
+            background: #e7f3ff;
+            border: 1px solid #b3d7ff;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            color: #0066cc;
+            text-align: center;
+        }
+
+        .demo-accounts {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 0.85em;
+        }
+
+        .demo-accounts h4 {
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .demo-account {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 5px 0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .demo-account:hover {
+            background: #e9ecef;
+        }
+
+        .demo-account strong {
+            color: #495057;
+        }
+    </style>
+</head>
+<body>
+    <div style="text-align: center; margin-bottom: 40px;">
+        <h1 style="color: #094F90; font-size: 3em; font-weight: 300; margin: 0;">Aria - CCMs AI Assistant</h1>
+    </div>
+    <div class="auth-container">
+        <div class="auth-right">
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form active">
+                <h2 class="form-title">Welcome Back</h2>
+                <p class="form-subtitle">Sign in to your account</p>
+                
+                <div id="loginAlert"></div>
+                
+                <div class="form-group">
+                    <label for="loginEmail">Email Address</label>
+                    <input type="email" id="loginEmail" class="form-control" placeholder="Enter your email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" class="form-control" required>
+                </div>
+                
+                <button type="submit" class="btn" id="loginBtn">Sign In</button>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log('Login page loaded');
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded');
+            initializeLoginPage();
+        });
+
+        function initializeLoginPage() {
+            console.log('Initializing login page...');
+            checkAuthStatus();
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            console.log('Setting up event listeners...');
+            
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', handleLogin);
+                console.log('Login form event listener added');
+            } else {
+                console.error('Login form not found!');
+            }
+
+            document.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const activeForm = document.querySelector('.auth-form.active');
+                    if (activeForm) {
+                        const submitBtn = activeForm.querySelector('button[type="submit"]');
+                        if (submitBtn && !submitBtn.disabled) {
+                            submitBtn.click();
+                        }
+                    }
+                }
+            });
+        }
+
+        function fillLoginForm(email, password) {
+            document.getElementById('loginEmail').value = email;
+            document.getElementById('loginPassword').value = password;
+        }
+
+        async function checkAuthStatus() {
+            try {
+                console.log('Checking authentication status...');
+                const response = await fetch('/api/auth/me');
+                const data = await response.json();
+                
+                if (data.loggedIn) {
+                    console.log('User already logged in, redirecting...');
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                console.log('Not logged in or auth check failed:', error);
+            }
+        }
+
+        function showLoginForm() {
+            console.log('showLoginForm called');
+            hideAllForms();
+            const loginForm = document.getElementById('loginForm');
+            console.log('Login form found:', loginForm);
+            if (loginForm) {
+                loginForm.classList.add('active');
+                console.log('Login form activated, classes:', loginForm.className);
+            } else {
+                console.error('Login form not found!');
+            }
+        }
+
+
+        function hideAllForms() {
+            console.log('hideAllForms called');
+            const forms = document.querySelectorAll('.auth-form');
+            console.log('Found forms:', forms.length);
+            forms.forEach(form => {
+                console.log('Removing active from:', form.id);
+                form.classList.remove('active');
+            });
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            const forms = document.querySelectorAll('.auth-form');
+            
+            if (loading) {
+                loading.style.display = show ? 'block' : 'none';
+            }
+            
+            forms.forEach(form => {
+                form.style.display = show ? 'none' : (form.classList.contains('active') ? 'block' : 'none');
+            });
+        }
+
+        function showAlert(containerId, message, type = 'error') {
+            const alertContainer = document.getElementById(containerId);
+            if (alertContainer) {
+                alertContainer.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+                setTimeout(() => {
+                    alertContainer.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            console.log('Login form submitted');
+            
+            const email = document.getElementById('loginEmail').value.trim();
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showAlert('loginAlert', 'Please enter a valid email address');
+                return;
+            }
+
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                showAlert('loginAlert', 'Please fill in all fields');
+                return;
+            }
+            
+            console.log('Attempting login for user:', email);
+            showLoading(true);
+            
+            try {
+                console.log('Sending login request...');
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username: email, password })
+                });
+                
+                console.log('Login response status:', response.status);
+                const data = await response.json();
+                console.log('Login response data:', data);
+                
+                if (data.success) {
+                    showAlert('loginAlert', 'Login successful! Redirecting...', 'success');
+                    console.log('Login successful, redirecting to home page...');
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    showAlert('loginAlert', data.error || 'Login failed');
+                    console.error('Login failed:', data.error);
+                }
+            } catch (error) {
+                console.error('Login network error:', error);
+                showAlert('loginAlert', 'Network error. Please try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+    </script>
+</body>
+</html>

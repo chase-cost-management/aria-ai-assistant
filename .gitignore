@@ -1,0 +1,96 @@
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+# 依赖项
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 环境变量和配置文件
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+config/secrets.json
+config/local.json
+
+# 日志文件
+logs/
+*.log
+
+# 运行时数据
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# 覆盖率目录
+coverage/
+nyc_output/
+
+# 编译输出
+dist/
+build/
+out/
+
+# 缓存
+.cache/
+.parcel-cache/
+.npm/
+.eslintcache
+
+# 操作系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE 配置文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 密钥和证书文件
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.jks
+*.keystore
+
+# 临时文件
+temp/
+tmp/
+uploads/
+*.tmp
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 备份文件
+*.backup
+*.bak
+*.orig
+
+# 压缩文件
+*.tar.gz
+*.zip
+*.rar
+
+# 安全相关文件
+secrets/
+credentials/
+auth/

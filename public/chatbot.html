@@ -1,0 +1,4125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>AI Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f9fafb;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            display: flex;
+            height: 100vh;
+            background: white;
+            margin-left: -20px;
+        }
+
+        /* 左侧面板 */
+        .sidebar {
+            width: 320px;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+        }
+
+        /* 新对话按钮 */
+        .new-chat-section {
+            padding: -20px 20px 20px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            background: white;
+        }
+
+        .new-chat-btn {
+            width: 100%;
+            background: #374151;
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .new-chat-btn:hover {
+            background: #4b5563;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(55, 65, 81, 0.3);
+        }
+
+        /* 历史记录区域 */
+        .history-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            overflow: hidden;
+        }
+
+        .history-header {
+            padding: 20px 20px 15px 20px;
+            background: white;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .history-header h4 {
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .history-search {
+            position: relative;
+        }
+
+        .history-search input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.9em;
+            background: #f9fafb;
+            transition: all 0.3s ease;
+        }
+
+        .history-search input:focus {
+            outline: none;
+            border-color: #374151;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(55, 65, 81, 0.1);
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 20px 20px 20px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 1px solid #f3f4f6;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .history-item:hover {
+            background: #f8fafc;
+            border-color: #d1d5db;
+            transform: translateX(2px);
+        }
+
+        .history-item.active {
+            background: #f0f9ff;
+            border-color: #374151;
+            box-shadow: 0 0 0 1px rgba(55, 65, 81, 0.1);
+        }
+
+        .history-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-title {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9em;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-date {
+            font-size: 0.75em;
+            color: #6b7280;
+            margin-bottom: 2px;
+        }
+
+        .history-preview {
+            font-size: 0.7em;
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: 8px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .history-item:hover .history-actions {
+            opacity: 1;
+        }
+
+        .history-action-btn {
+            background: #374151;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .history-export-btn {
+            background: #4b5563;
+        }
+
+        .history-export-btn:hover {
+            background: #4b5563;
+            transform: scale(1.05);
+        }
+
+        .history-delete-btn {
+            background: #dc2626;
+        }
+
+        .history-delete-btn:hover {
+            background: #b91c1c;
+            transform: scale(1.05);
+        }
+
+        /* 聊天区域 */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f9fafb;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* 初始状态的聊天区域 - 居中显示内容 */
+        .chat-container.initial-state .chat-area {
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 初始状态的欢迎内容 */
+        .welcome-content {
+            text-align: center;
+            color: #374151;
+            margin-bottom: 40px;
+            opacity: 1;
+            transition: all 0.5s ease;
+            max-width: 800px;
+            padding: 0 40px;
+        }
+
+        .chat-container:not(.initial-state) .welcome-content {
+            display: none;
+        }
+
+        .welcome-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .welcome-subtitle {
+            font-size: 1.4em;
+            opacity: 0.8;
+            margin-bottom: 10px;
+            color: #4b5563;
+        }
+
+        /* 消息容器 */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f9fafb;
+            opacity: 0;
+            transition: all 0.5s ease;
+            margin-top: -20px;
+        }
+
+        .chat-container:not(.initial-state) .messages-container {
+            opacity: 1;
+        }
+
+        .chat-container.initial-state .messages-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 16px;
+            animation: slideInUp 0.3s ease;
+        }
+
+        @keyframes slideInUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(10px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-content {
+            max-width: 90%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            line-height: 1.5;
+            position: relative;
+            font-size: 0.95em;
+            word-wrap: break-word;
+            min-width: 200px;
+        }
+
+        .message.user .message-content {
+            background: #374151;
+            color: white;
+            border-bottom-right-radius: 4px;
+            margin-left: auto;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* 建议芯片 */
+        .suggestion-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .suggestion-chip {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            border-radius: 16px;
+            padding: 8px 16px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .suggestion-chip:hover {
+            background: #374151;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        /* 打字指示器 */
+        .typing-indicator {
+            display: flex;
+            margin-bottom: 16px;
+            animation: slideInUp 0.3s ease;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 16px;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #9ca3af;
+            animation: typingPulse 1.4s ease-in-out infinite;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingPulse {
+            0%, 60%, 100% {
+                transform: scale(1);
+                opacity: 0.4;
+            }
+            30% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+
+        /* 输入区域 */
+        .input-area {
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 20px;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+            transition: all 0.5s ease;
+        }
+
+        .chat-container.initial-state .input-area {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 初始状态的输入容器样式 */
+        .chat-container.initial-state .input-container {
+            background: white;
+            border-radius: 24px;
+            padding: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border: 1px solid #e5e7eb;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 文件上传区域 */
+        .file-upload-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 6px 16px;
+            background: #f9fafb;
+            border: 2px dashed #d1d5db;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            height: 40px;
+            box-sizing: border-box;
+        }
+
+        .chat-container.initial-state .file-upload-area {
+            display: none;
+        }
+
+        .file-upload-area:hover {
+            border-color: #374151;
+            background: #f3f4f6;
+        }
+
+        .file-upload-icon {
+            font-size: 1.2em;
+            color: #6b7280;
+        }
+
+        .file-upload-text {
+            flex: 1;
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+
+        /* 文件预览 */
+        .file-preview {
+            display: none;
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            animation: slideInUp 0.3s ease;
+        }
+
+        .file-preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-preview-name {
+            font-weight: 600;
+            color: #1e40af;
+            font-size: 0.9em;
+            flex: 1;
+        }
+
+        .file-preview-size {
+            color: #6b7280;
+            font-size: 0.8em;
+            margin-right: 12px;
+        }
+
+        .remove-file-btn {
+            background: #1e40af;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .remove-file-btn:hover {
+            background: #1d4ed8;
+            transform: scale(1.1);
+        }
+
+        /* 输入容器 */
+        .input-container {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .message-input {
+            flex: 1;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 1em;
+            outline: none;
+            transition: all 0.3s ease;
+            resize: none;
+            min-height: 48px;     /* 设置最小高度 */
+            max-height: 48px;     /* 设置最大高度，保持单行 */
+            font-family: inherit;
+            background: white;
+            display: flex;        /* 添加这行 */
+            align-items: center;  /* 添加这行，垂直居中对齐 */
+            line-height: 1.2;     /* 添加这行，调整行高 */
+        }
+
+        .chat-container.initial-state .message-input {
+            border: none;
+            background: transparent;
+            font-size: 1.1em;
+            padding: 12px 20px;   /* 减少padding */
+            display: flex;        /* 添加这行 */
+            align-items: center;  /* 添加这行 */
+            line-height: 1.2;     /* 添加这行 */
+        }
+
+        .chat-container.initial-state .message-input::placeholder {
+            color: #6b7280;
+            opacity: 0.8;
+        }
+
+        .message-input:focus {
+            border-color: #374151;
+            box-shadow: 0 0 0 3px rgba(55, 65, 81, 0.1);
+        }
+
+        .chat-container.initial-state .message-input:focus {
+            box-shadow: none;
+        }
+
+        .send-button {
+            background: #374151;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .send-button:hover {
+            background: #4b5563;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(55, 65, 81, 0.3);
+        }
+
+        .send-button:active {
+            transform: translateY(0);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 280px;
+            }
+            
+            .chat-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 40vh;
+                border-right: none;
+                border-bottom: 1px solid #e5e7eb;
+            }
+            
+            .chat-area {
+                height: 60vh;
+            }
+            
+            .message-content {
+                max-width: 90%;
+            }
+
+            .welcome-title {
+                font-size: 2.5em;
+            }
+
+            .welcome-subtitle {
+                font-size: 1.2em;
+            }
+
+        }
+
+        /* 滚动条样式 */
+        .history-list::-webkit-scrollbar,
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .history-list::-webkit-scrollbar-track,
+        .messages-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .history-list::-webkit-scrollbar-thumb,
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .history-list::-webkit-scrollbar-thumb:hover,
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* 搜索模式切换按钮 */
+        .search-mode-btn {
+            background: #374151;
+            color: white;
+            border: none;
+            border-radius: 8px;  /* 改为圆角矩形 */
+            padding: 8px 16px;   /* 添加内边距 */
+            height: 40px;
+            min-width: 120px;    /* 设置最小宽度 */
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-right: 12px;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .search-mode-btn:hover {
+            background: #4b5563;
+            transform: scale(1.05);
+        }
+
+        .search-mode-btn.google-mode {
+            background: #4285f4;
+        }
+
+        .search-mode-btn.google-mode:hover {
+            background: #3367d6;
+        }
+
+        .mode-icon {
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        /* 搜索模式指示器 */
+        .search-mode-indicator {
+            padding: 8px 16px;
+            background: #f1f5f9;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .search-mode-indicator.google-mode {
+            background: #e3f2fd;
+            border-color: #4285f4;
+        }
+
+        .mode-text {
+            font-size: 0.85em;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .search-mode-indicator.google-mode .mode-text {
+            color: #1565c0;
+        }
+
+        /* Google 搜索结果容器 */
+        .google-search-container {
+            display: none;
+            width: 100%;
+            height: 400px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .google-search-container.active {
+            display: block;
+        }
+
+        /* 隐藏默认的消息容器当在 Google 模式时 */
+        .chat-container.google-search-mode .messages-container {
+            display: none;
+        }
+
+        .chat-container.google-search-mode .welcome-content {
+            display: none;
+        }
+
+        .message-input.google-mode::placeholder {
+            color: #4285f4;
+        }
+
+        /* 1) 统一缩小输入框与按钮 */
+        .message-input{
+        min-height: 36px;
+        max-height: 36px;
+        padding: 8px 12px;
+        font-size: 0.95em;
+        }
+        .send-button{ width: 40px; height: 40px; font-size: 1em; }
+        .search-mode-btn{ height: 36px; font-size: 13px; }
+
+        /* 2) 初始页那个输入框也要一起缩小（覆盖它原先更大的 padding/字号） */
+        .chat-container.initial-state .message-input{
+        font-size: 1em;
+        padding: 8px 12px;
+        }
+
+        /* 3) 在输入框下方留一段距离 */
+        .chat-container.initial-state .input-container{ margin-bottom: 16px; } /* 初始页：与“AI Assistant Mode”之间的空隙 */
+        .input-area{ padding: 12px 20px; margin-bottom: 16px; }              /* 聊天页：与页面底部的空隙 */
+
+        .search-mode-indicator {
+            margin-top: 16px;   /* 你可以改成 20px 或 24px 看效果 */
+            }
+
+        /* 功能按钮样式 */
+        .function-btn {
+            background: #ffffff;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #6b7280;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            width: 120px;
+            height: 40px;
+        }
+
+        .function-btn:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+            color: #374151;
+        }
+
+        .function-btn:active {
+            background: #e5e7eb;
+            transform: translateY(1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container initial-state" id="chatContainer">
+        <!-- 左侧面板 -->
+        <div class="sidebar">
+            <!-- 新对话按钮 -->
+            <div class="new-chat-section">
+                <button class="new-chat-btn" onclick="clearAIConversation()">
+                    New Chat
+                </button>
+            </div>
+
+            <!-- 历史记录区域 -->
+            <div class="history-section">
+                <div class="history-header">
+                    <h4>Chat History</h4>
+                    <div class="history-search">
+                        <input type="text" 
+                               id="aiHistorySearchInput" 
+                               placeholder="Search conversations..." 
+                               oninput="filterAIHistory(this.value)">
+                    </div>
+                </div>
+                <div class="history-list" id="aiHistoryList">
+                    <!-- 历史记录项将在这里加载 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧对话区域 -->
+        <div class="chat-area">
+            <!-- 欢迎内容 (仅在初始状态显示) -->
+            <div class="welcome-content">
+                <div class="welcome-title">Hi, I'm Aria</div>
+                <div class="welcome-subtitle">Your AI assistant, powered by OpenAI.</div>
+                <div class="welcome-subtitle">How can I help you today?</div>
+
+                <div class="suggestion-chips" style="margin-top: 30px; justify-content: center;">
+                    <div class="suggestion-chip" onclick="startContractAnalysis()">Contract Analysis</div>
+                    <div class="suggestion-chip" onclick="startSearchVendor()">Search Vendor</div>
+                    <div class="suggestion-chip" onclick="startSearchContract()">Search Contract</div>
+                </div>
+            </div>
+
+            <div class="google-search-container" id="googleSearchContainer">
+                <script async src="https://cse.google.com/cse.js?cx=5000aec9da88d45b4"></script>
+                <div class="gcse-search"></div>
+            </div>
+
+            <!-- 消息容器 -->
+            <div class="messages-container" id="aiMessages">
+                <!-- 消息将在这里显示 -->
+                
+                <div class="typing-indicator" id="aiTypingIndicator" style="display: none;">
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 输入区域 -->
+            <div class="input-area">
+                <!-- 文件上传区域和功能按钮 -->
+                <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+                    <div class="file-upload-area" onclick="document.getElementById('aiFileInput').click()" id="aiFileArea" style="flex: 1;">
+                        <div class="file-upload-icon">📎</div>
+                        <div class="file-upload-text">Drag & drop or click to upload any file</div>
+                        <input type="file" id="aiFileInput" onchange="handleAIFileUpload(this)" style="display: none;">
+                    </div>
+                    
+                    <!-- 功能按钮 -->
+                    <div class="function-buttons" style="display: flex; gap: 8px; flex-shrink: 0;">
+                        <button onclick="startContractAnalysis()" class="function-btn">
+                            Contract Analysis
+                        </button>
+                        <button onclick="startSearchVendor()" class="function-btn">
+                            Search Vendor
+                        </button>
+                        <button onclick="startSearchContract()" class="function-btn">
+                            Search Contract
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 文件预览区域 -->
+                <div class="file-preview" id="aiUploadedFilePreview">
+                    <div class="file-preview-header">
+                        <span class="file-preview-name" id="aiFilePreviewName"></span>
+                        <span class="file-preview-size" id="aiFilePreviewSize"></span>
+                        <button class="remove-file-btn" onclick="removeAIUploadedFile()" title="Remove file">×</button>
+                    </div>
+                </div>
+                
+                <!-- 消息输入 -->
+                <div class="input-container">
+                    <!-- 搜索模式切换按钮 -->
+                    <button class="search-mode-btn" id="searchModeBtn" onclick="toggleSearchMode()" title="Switch Search Mode">
+                        <span class="mode-icon">Switch Mode</span>
+                    </button>
+                    
+                    <textarea class="message-input" id="aiInput" 
+                        placeholder="Message Aria..." 
+                        onkeypress="handleAIKeyPress(event)"
+                        oninput="autoResize(this)"
+                        onfocus="handleFirstFocus()"></textarea>
+                    <button class="send-button" onclick="sendMessage()" id="aiSend">
+                        ➤
+                    </button>
+                </div>
+
+                <!-- 搜索模式指示器 -->
+                <div class="search-mode-indicator" id="searchModeIndicator">
+                    <span class="mode-text">AI Assistant Mode</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables for AI Assistant
+        let aiConversationHistory = [];
+        let currentAIUploadedFile = null;
+        let aiChatHistory = null;
+        let isInitialState = true;
+
+        // Handle first interaction - switch from initial to chat state
+        function handleFirstFocus() {
+            if (isInitialState) {
+                switchToChatMode();
+            }
+        }
+
+        function switchToChatMode() {
+            const container = document.getElementById('chatContainer');
+            container.classList.remove('initial-state');
+            isInitialState = false;
+            
+            // 添加欢迎消息到消息容器
+            addAIMessage(
+                `Hi, I'm Aria, your AI assistant, powered by OpenAI. How can I help you today?
+
+<div class="suggestion-chips">
+    <div class="suggestion-chip" onclick="startContractAnalysis()">Contract Analysis</div>
+    <div class="suggestion-chip" onclick="startSearchVendor()">Search Vendor</div>
+    <div class="suggestion-chip" onclick="startSearchContract()">Search Contract</div>
+</div>`, 
+                'bot', 
+                null, 
+                false
+            );
+        }
+
+        // 发送建议消息
+        function sendAISuggestion(text) {
+            if (isInitialState) {
+                switchToChatMode();
+            }
+            document.getElementById('aiInput').value = text;
+            sendAIMessage();
+        }
+
+        // Contract Analysis functionality
+        function startContractAnalysis() {
+            if (isInitialState) {
+                switchToChatMode();
+            }
+            addAIMessage('Please upload a contract for analysis.', 'bot', null, true);
+            
+            // Set flag for contract analysis mode
+            window.contractAnalysisMode = true;
+            
+            // Enable file upload mode for contract analysis
+            const fileArea = document.getElementById('aiFileArea');
+            if (fileArea) {
+                fileArea.style.display = 'flex';
+                fileArea.querySelector('.file-upload-text').textContent = 'Click to upload contract for analysis';
+            }
+        }
+
+        // Search Vendor functionality
+        function startSearchVendor() {
+            if (isInitialState) {
+                switchToChatMode();
+            }
+            
+            // Reset any previous state
+            window.selectedVendorNames = '';
+            window.selectedDataSources = ['contract', 'gl', 'jira'];
+            
+            // Generate unique timestamp for this search instance
+            const timestamp = Date.now();
+            
+            // Create interactive vendor search interface
+            const searchInterface = `
+                <div id="vendorSearch_${timestamp}" style="background: #f8fafc; padding: 20px; border-radius: 12px; margin: 10px 0; border: 1px solid #e5e7eb;">
+                    <h4 style="margin-top: 0; color: #374151;">Vendor Search Options</h4>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <button onclick="showVendorNameInput('${timestamp}')" 
+                                style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 8px; margin-right: 10px; cursor: pointer; width: 160px;">
+                            Enter Vendor Name(s)
+                        </button>
+                        <span id="vendorNameStatus_${timestamp}" style="color: #6b7280; font-style: italic;">Click to enter vendor names</span>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <button onclick="showDataSourceOptions('${timestamp}')" 
+                                style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 8px; margin-right: 10px; cursor: pointer; width: 160px;">
+                            Select Data Sources
+                        </button>
+                        <span id="dataSourceStatus_${timestamp}" style="color: #6b7280; font-style: italic;">All sources selected by default</span>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <button onclick="performVendorSearch('${timestamp}')" 
+                                style="background: #4b5563; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 160px;">
+                            Search Vendors
+                        </button>
+                    </div>
+                    
+                    <!-- Hidden vendor name input -->
+                    <div id="vendorNameInput_${timestamp}" style="display: none; margin-top: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Enter Vendor Names (separate multiple names with commas):</label>
+                        <input type="text" id="vendorNames_${timestamp}" placeholder="e.g., Microsoft, Google, Amazon" 
+                               style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                        <button onclick="saveVendorNames('${timestamp}')" 
+                                style="background: #6b7280; color: white; border: none; padding: 6px 12px; border-radius: 4px; margin-top: 8px; cursor: pointer;">
+                            Save
+                        </button>
+                    </div>
+                    
+                    <!-- Hidden data source checkboxes -->
+                    <div id="dataSourceOptions_${timestamp}" style="display: none; margin-top: 15px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: bold;">Select Data Sources:</label>
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="contractSource_${timestamp}" checked 
+                                       style="margin-right: 6px; transform: scale(1.2);">
+                                <span>Contract</span>
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="glSource_${timestamp}" checked 
+                                       style="margin-right: 6px; transform: scale(1.2);">
+                                <span>GL</span>
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="jiraSource_${timestamp}" checked 
+                                       style="margin-right: 6px; transform: scale(1.2);">
+                                <span>Jira</span>
+                            </label>
+                        </div>
+                        <button onclick="saveDataSources('${timestamp}')" 
+                                style="background: #6b7280; color: white; border: none; padding: 6px 12px; border-radius: 4px; margin-top: 8px; cursor: pointer;">
+                            Save
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Store this search instance's data
+            if (!window.vendorSearchInstances) {
+                window.vendorSearchInstances = {};
+            }
+            window.vendorSearchInstances[timestamp] = {
+                vendorNames: '',
+                dataSources: ['contract', 'gl', 'jira']
+            };
+            
+            addAIMessage('Please configure your vendor search options:', 'bot', null, true);
+            addAIMessage(searchInterface, 'bot', null, true);
+            
+            // Initialize default values
+            window.selectedVendorNames = '';
+            window.selectedDataSources = ['contract', 'gl', 'jira'];
+        }
+
+        // Vendor search helper functions - make them globally available
+        window.showVendorNameInput = function(timestamp) {
+            const input = document.getElementById(`vendorNameInput_${timestamp}`);
+            if (input) {
+                input.style.display = input.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        window.showDataSourceOptions = function(timestamp) {
+            const options = document.getElementById(`dataSourceOptions_${timestamp}`);
+            if (options) {
+                options.style.display = options.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        window.saveVendorNames = function(timestamp) {
+            const vendorNames = document.getElementById(`vendorNames_${timestamp}`).value.trim();
+            window.vendorSearchInstances[timestamp].vendorNames = vendorNames;
+            document.getElementById(`vendorNameStatus_${timestamp}`).textContent = vendorNames ? `Selected: ${vendorNames}` : 'Click to enter vendor names';
+            document.getElementById(`vendorNameInput_${timestamp}`).style.display = 'none';
+        }
+
+        window.saveDataSources = function(timestamp) {
+            const sources = [];
+            if (document.getElementById(`contractSource_${timestamp}`).checked) sources.push('contract');
+            if (document.getElementById(`glSource_${timestamp}`).checked) sources.push('gl');
+            if (document.getElementById(`jiraSource_${timestamp}`).checked) sources.push('jira');
+            
+            window.vendorSearchInstances[timestamp].dataSources = sources;
+            document.getElementById(`dataSourceStatus_${timestamp}`).textContent = sources.length > 0 ? `Selected: ${sources.join(', ')}` : 'No sources selected';
+            document.getElementById(`dataSourceOptions_${timestamp}`).style.display = 'none';
+        }
+
+        window.performVendorSearch = async function(timestamp) {
+            const searchInstance = window.vendorSearchInstances[timestamp];
+            if (!searchInstance || !searchInstance.vendorNames || !searchInstance.vendorNames.trim()) {
+                addAIMessage('Please enter at least one vendor name before searching.', 'bot', null, true);
+                return;
+            }
+
+            if (!searchInstance.dataSources || searchInstance.dataSources.length === 0) {
+                addAIMessage('Please select at least one data source before searching.', 'bot', null, true);
+                return;
+            }
+
+            // Show typing indicator
+            showAITypingIndicator(true);
+
+            try {
+                const response = await fetch('/api/search-vendor-enhanced', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        vendorNames: searchInstance.vendorNames,
+                        dataSources: searchInstance.dataSources
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Display the search results in the same format as search vendor tab
+                    addAIMessage(result.response, 'bot', null, true);
+                } else {
+                    addAIMessage(result.error || 'Search failed. Please try again.', 'bot', null, true);
+                }
+
+            } catch (error) {
+                console.error('❌ Search vendor error:', error);
+                addAIMessage('Sorry, I encountered an error while searching. Please try again.', 'bot', null, true);
+            } finally {
+                showAITypingIndicator(false);
+            }
+        }
+
+        // Helper functions for contract table actions - make them globally available
+        window.downloadContractFile = function(url, filename) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename || 'contract';
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.previewFileFromChat = async function(fileUrl) {
+            try {
+                // Use the same preview API as the main tab
+                const response = await fetch('/api/preview-file', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ fileUrl: fileUrl })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                const previewUrl = window.URL.createObjectURL(blob);
+                
+                const previewWindow = window.open(previewUrl, '_blank');
+                if (!previewWindow) {
+                    addAIMessage('Popup blocked. Please allow popups for this site to preview files.', 'bot', null, true);
+                    return;
+                }
+                
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(previewUrl);
+                }, 60000);
+
+            } catch (error) {
+                console.error('❌ File preview error:', error);
+                addAIMessage('Sorry, file preview failed. You can try downloading the file instead.', 'bot', null, true);
+            }
+        }
+
+        // Download file function for chatbot
+        window.downloadFileFromChat = async function(fileUrl, fileName) {
+            try {
+                const response = await fetch('/api/download-file', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        fileUrl: fileUrl,
+                        fileName: fileName
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to download file');
+                }
+
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                
+                const extension = fileUrl.split('.').pop();
+                link.download = fileName.replace(/[^a-z0-9.\-_]/gi, '_') + '.' + extension;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Clean up the URL
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(downloadUrl);
+                }, 1000);
+
+            } catch (error) {
+                console.error('❌ Download error:', error);
+                addAIMessage('Sorry, file download failed: ' + error.message, 'bot', null, true);
+            }
+        }
+
+        // Preview contract function for chatbot
+        window.previewContractFromChat = function(fileUrl) {
+            if (window.parent && window.parent.previewFile) {
+                window.parent.previewFile(fileUrl);
+            } else {
+                // Open in new window/tab if not in iframe
+                window.open(fileUrl, '_blank');
+            }
+        }
+
+        // Download contract function for chatbot
+        window.downloadContractFromChat = function(fileUrl, contractName) {
+            if (window.parent && window.parent.downloadFile) {
+                window.parent.downloadFile(fileUrl, contractName);
+            } else {
+                // Direct download if not in iframe
+                const link = document.createElement('a');
+                link.href = fileUrl;
+                link.download = contractName || 'contract';
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // Compare contract function for chatbot - opens modal like in search vendor tab
+        window.compareContractFromChat = function(fileUrl, contractName) {
+            openComparisonModal(fileUrl, contractName);
+        }
+
+        window.compareContract = function(url, contractName) {
+            // Implement compare functionality similar to main tab
+            if (window.parent && window.parent.compareWithNew) {
+                window.parent.compareWithNew(url, contractName);
+            } else {
+                addAIMessage('Compare functionality requires opening in main window.', 'bot', null, true);
+            }
+        }
+
+        // Search Contract functionality
+        function startSearchContract() {
+            if (isInitialState) {
+                switchToChatMode();
+            }
+            
+            // Initialize contract search instances if not exists
+            if (!window.contractSearchInstances) {
+                window.contractSearchInstances = {};
+            }
+            
+            // Generate unique timestamp for this search instance
+            const timestamp = Date.now();
+            
+            // Create interactive contract search interface
+            const searchInterface = `
+                <div id="contractSearch_${timestamp}" style="background: #f8fafc; padding: 20px; border-radius: 12px; margin: 10px 0; border: 1px solid #e5e7eb;">
+                    <h4 style="margin-top: 0; color: #374151;">Contract Search Options</h4>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #374151;">Contract Name</label>
+                        <input type="text" id="contractName_${timestamp}" placeholder="Enter contract name (partial matches allowed)..." 
+                               style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px;"
+                               oninput="updateContractSearchField('contractName', this.value, ${timestamp})">
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #374151;">Product Name</label>
+                        <input type="text" id="productName_${timestamp}" placeholder="Enter product name..." 
+                               style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px;"
+                               oninput="updateContractSearchField('productName', this.value, ${timestamp})">
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #374151;">Vendor Name</label>
+                        <input type="text" id="vendorName_${timestamp}" placeholder="Enter vendor name..." 
+                               style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px;"
+                               oninput="updateContractSearchField('vendorName', this.value, ${timestamp})">
+                    </div>
+                    
+                    <div style="text-align: center;">
+                        <button onclick="performChatbotContractSearch(${timestamp})" 
+                                style="background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: 500; margin-right: 10px;">
+                            Search Contracts
+                        </button>
+                        <button onclick="clearContractSearch(${timestamp})" 
+                                style="background: #6b7280; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Store search instance
+            window.contractSearchInstances[timestamp] = {
+                contractName: '',
+                productName: '',
+                vendorName: ''
+            };
+            
+            addAIMessage('Please configure your contract search options:', 'bot', null, true);
+            addAIMessage(searchInterface, 'bot', null, true);
+        }
+
+        // Handle vendor name input
+        function handleVendorNameInput(vendorNames) {
+            const input = document.getElementById('aiInput');
+            
+            // Display user's input
+            addAIMessage(vendorNames, 'user', null, true);
+            
+            // Store vendor names for later use
+            window.currentVendorNames = vendorNames;
+            
+            // Clear input and ask for data source
+            input.value = '';
+            
+            // Ask for data source selection
+            addAIMessage('Please select data source: please type in (GL, Contract, Jira)', 'bot', null, true);
+            
+            // Change mode to data source input
+            window.currentMode = 'data_source_input';
+        }
+
+        // Handle data source input
+        async function handleDataSourceInput(dataSources) {
+            const input = document.getElementById('aiInput');
+            
+            // Display user's input
+            addAIMessage(dataSources, 'user', null, true);
+            
+            // Clear input
+            input.value = '';
+            
+            // Show typing indicator
+            showAITypingIndicator(true);
+            
+            try {
+                // Call the search vendor API
+                const response = await fetch('/api/search-vendor', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        vendorNames: window.currentVendorNames,
+                        dataSources: dataSources
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Display the search results in the chat
+                    addAIMessage(result.response, 'bot', null, true);
+                } else {
+                    addAIMessage(result.error || 'Search failed. Please try again.', 'bot', null, true);
+                }
+                
+            } catch (error) {
+                console.error('❌ Search vendor error:', error);
+                addAIMessage('Sorry, I encountered an error while searching. Please try again.', 'bot', null, true);
+            } finally {
+                showAITypingIndicator(false);
+                
+                // Reset mode
+                window.currentMode = null;
+                window.currentVendorNames = null;
+            }
+        }
+
+        // Update contract search field
+        window.updateContractSearchField = function(field, value, timestamp) {
+            if (window.contractSearchInstances && window.contractSearchInstances[timestamp]) {
+                window.contractSearchInstances[timestamp][field] = value;
+            }
+        }
+
+        // Clear contract search
+        window.clearContractSearch = function(timestamp) {
+            const searchInstance = window.contractSearchInstances[timestamp];
+            if (searchInstance) {
+                searchInstance.contractName = '';
+                searchInstance.productName = '';
+                searchInstance.vendorName = '';
+                
+                document.getElementById(`contractName_${timestamp}`).value = '';
+                document.getElementById(`productName_${timestamp}`).value = '';
+                document.getElementById(`vendorName_${timestamp}`).value = '';
+            }
+        }
+
+        // Perform contract search
+        window.performChatbotContractSearch = async function(timestamp) {
+            const searchInstance = window.contractSearchInstances[timestamp];
+            if (!searchInstance) {
+                addAIMessage('Search instance not found. Please try again.', 'bot', null, true);
+                return;
+            }
+
+            if (!searchInstance.contractName && !searchInstance.productName && !searchInstance.vendorName) {
+                addAIMessage('Please enter at least one search criteria before searching.', 'bot', null, true);
+                return;
+            }
+
+            // Show typing indicator
+            showAITypingIndicator(true);
+
+            try {
+                // Call the advanced contract search API (same as the tab)
+                const response = await fetch('/api/contracts/advanced-search', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contractName: searchInstance.contractName,
+                        productName: searchInstance.productName,
+                        vendorName: searchInstance.vendorName
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Format and display the search results in table format
+                    const contracts = result.contracts;
+                    if (contracts && contracts.length > 0) {
+                        let resultsMessage = `Found ${contracts.length} contract(s):\n\n`;
+                        
+                        // Create HTML table with same format as search contract tab
+                        resultsMessage += `
+<div style="overflow-x: auto;">
+    <table class="contracts-table" style="width: 100%; border-collapse: collapse; font-size: 0.9em; margin-top: 15px;">
+        <thead>
+            <tr style="background: #374151; color: white; font-weight: 600;">
+                <th style="border: 1px solid #dee2e6; padding: 12px 8px; text-align: left;">Contract ID</th>
+                <th style="border: 1px solid #dee2e6; padding: 12px 8px; text-align: left;">Client</th>
+                <th style="border: 1px solid #dee2e6; padding: 12px 8px; text-align: left;">Contract Name</th>
+                <th style="border: 1px solid #dee2e6; padding: 12px 8px; text-align: left;">Vendor</th>
+                <th style="border: 1px solid #dee2e6; padding: 12px 8px; text-align: left;">Contact Person</th>
+                <th style="border: 1px solid #dee2e6; padding: 12px 8px; text-align: left;">Contact Email</th>
+                <th style="border: 1px solid #dee2e6; padding: 12px 8px; text-align: left;">Contract Period</th>
+                <th style="border: 1px solid #dee2e6; padding: 12px 8px; text-align: left;">Spend</th>
+                <th style="border: 1px solid #dee2e6; padding: 12px 8px; text-align: left;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+`;
+                        
+                        contracts.forEach((contract, index) => {
+                            // Get attorney display using the mapping
+                            const clnumKey = parseInt(contract.clnum);
+                            const clientName = clientMapping[clnumKey] || `Client ${contract.clnum}`;
+                            const attorneyDisplay = getAttorneyDisplay(clientName);
+                            
+                            const spendDisplay = contract.spend
+                                ? (contract.currency
+                                    ? contract.currency + parseFloat(contract.spend).toLocaleString()
+                                    : '$' + parseFloat(contract.spend).toLocaleString())
+                                : '$0.00';
+                                
+                            const startDate = contract.start_date ? contract.start_date.toString().replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') : 'N/A';
+                            const endDate = contract.end_date ? contract.end_date.toString().replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') : 'N/A';
+                            
+                            let fixedFileUrl = contract.file;
+                            if (fixedFileUrl && fixedFileUrl.includes('ccm-contracts.s3.amazonaws.com')) {
+                                fixedFileUrl = fixedFileUrl.replace('ccm-contracts.s3.amazonaws.com', 'ccm-contracts.s3.us-east-1.amazonaws.com');
+                            }
+                            
+                            const rowStyle = index % 2 === 0 ? 'background: #f8f9fa;' : '';
+                            
+                            resultsMessage += `
+            <tr style="${rowStyle}">
+                <td style="border: 1px solid #dee2e6; padding: 12px 8px;">${contract.contract_id || contract.id || 'N/A'}</td>
+                <td style="border: 1px solid #dee2e6; padding: 12px 8px;"><strong>${attorneyDisplay}</strong></td>
+                <td style="border: 1px solid #dee2e6; padding: 12px 8px;">${contract.contract_name || 'N/A'}</td>
+                <td style="border: 1px solid #dee2e6; padding: 12px 8px;">${contract.vendor_name || 'N/A'}</td>
+                <td style="border: 1px solid #dee2e6; padding: 12px 8px;">${contract.vendor_contact_name || 'N/A'}</td>
+                <td style="border: 1px solid #dee2e6; padding: 12px 8px;">${contract.vendor_contact_email || 'N/A'}</td>
+                <td style="border: 1px solid #dee2e6; padding: 12px 8px;">
+                    <div style="font-size: 0.85em;">
+                        <strong>Start:</strong> ${startDate}<br>
+                        <strong>End:</strong> ${endDate}
+                    </div>
+                </td>
+                <td style="border: 1px solid #dee2e6; padding: 12px 8px;">${spendDisplay}</td>
+                <td style="border: 1px solid #dee2e6; padding: 12px 8px;">
+                    ${fixedFileUrl ? 
+                        `<button onclick="previewContractFromChat('${fixedFileUrl}')" style="background: #1e3a8a; color: white; border: none; padding: 3px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; width: 100%;">Preview</button><br>
+                        <button onclick="downloadContractFromChat('${fixedFileUrl}', '${(contract.contract_name || 'contract').replace(/'/g, '\\\'')}')" style="background: #3b82f6; color: white; border: none; padding: 3px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75em; width: 100%;">Download</button>`
+                        : '<span style="color: #6c757d; font-size: 0.8em;">No file</span>'
+                    }
+                </td>
+            </tr>
+`;
+                        });
+                        
+                        resultsMessage += `
+        </tbody>
+    </table>
+</div>
+`;
+                        
+                        addAIMessage(resultsMessage, 'bot', null, true);
+                    } else {
+                        addAIMessage('No contracts found matching your search criteria.', 'bot', null, true);
+                    }
+                } else {
+                    addAIMessage(result.error || 'Contract search failed. Please try again.', 'bot', null, true);
+                }
+                
+            } catch (error) {
+                console.error('❌ Search contract error:', error);
+                addAIMessage('Sorry, I encountered an error while searching for contracts. Please try again.', 'bot', null, true);
+            } finally {
+                showAITypingIndicator(false);
+            }
+        }
+
+        // Format contract analysis response for chatbot display
+        // Attorney mapping - maps client names to attorney/revenue information
+        const attorneyMapping = {
+            "Baker Botts L.L.P.": "Total Attorney: 700",
+            "Simpson Thacher & Bartlett LLP": "Total Attorney: 1200",
+            "Paul Weiss": "Total Attorney: 1000",
+            "Schulte Roth & Zabel LLP": "Total Attorney: 300",
+            "Chapman and Cutler LLP": "Total Attorney: 200",
+            "Phillips Lytle LLP": "Total Attorney: 100",
+            "Ropes & Gray LLP": "Total Attorney: 1500",
+            "Harris Beach PLLC": "Total Attorney: 200",
+            "Morris, Nichols, Arsht & Tunnell LLP": "Total Attorney: 100",
+            "Beveridge & Diamond, PC": "Total Attorney: 100",
+            "Cleary Gottlieb Steen & Hamilton LLP": "Total Attorney: 1200",
+            "Kaufman Borgeest Ryan LLP - FedEx Pricing Audit": "Total Attorney: 100",
+            "Adler Pollock & Sheehan PC": "Total Attorney: 100",
+            "Ogletree": "Total Attorney: 900",
+            "Proskauer": "Total Attorney: 800",
+            "Bricker Graydon LLP": "Total Attorney: 200",
+            "Steptoe": "Total Attorney: 400",
+            "Frost Brown Todd LLP": "Total Attorney: 600",
+            "Akerman LLP": "Total Attorney: 700",
+            "Cadwalader, Wickersham & Taft LLP": "Total Attorney: 400",
+            "Ankura Consulting Group, LLC": "Total Revenue: $800M",
+            "Crash Champions": "Total Revenue: $5B"
+        };
+
+        // Client mapping for display (same as index.html)
+        const clientMapping = {
+            4: "Alston & Bird LLP", 5: "Ruden McClosky", 6: "Dykema Gossett PLLC", 8: "Miller & Martin PLLC",
+            9: "Hogan Lovells US LLP", 10: "Cranfill, Sumner, & Hartzog, L.L.P.", 12: "Poyner & Spruill LLP",
+            13: "Warner Norcross & Judd", 14: "Olshan Frome Wolosky LLP", 15: "Cadwalader, Wickersham & Taft LLP",
+            16: "Baker & Hostetler LLP", 17: "Brown Rudnick LLP", 18: "Phillips Lytle LLP", 19: "Andrews Kurth LLP",
+            20: "Miller & Chevalier", 21: "Baker, Donelson, Bearman, Caldwell & Berkowitz PC", 22: "Jones Vargas",
+            23: "Paul, Weiss, Rifkind, Wharton & Garrison LLP", 24: "Robins Kaplan LLP", 26: "Ropes & Gray LLP",
+            27: "Royston, Rayzor, Vickery & Williams, L.L.P.", 28: "Vinson & Elkins L.L.P.", 30: "Wilson Sonsini Goodrich & Rosati",
+            31: "Stinson Leonard Street", 32: "Bank Street College of Education", 33: "Keker & Van Nest L.L.P.",
+            34: "ESL Federal Credit Union", 35: "Chamberlain, Hrdlicka, White, Williams & Martin", 36: "Meagher & Geer, P.L.L.P.",
+            37: "Farella Braun & Martel LLP", 38: "Bingham McHale LLP", 39: "Wolf Haldenstein Adler Freeman & Herz LLP",
+            40: "Nixon Peabody LLP", 41: "Gray Plant Mooty", 42: "Schiff Hardin LLP", 43: "Procopio, Cory, Hargreaves & Savitch LLP",
+            44: "Akin Gump Strauss Hauer & Feld LLP", 45: "Sterne, Kessler, Goldstein & Fox P.L.L.C.", 46: "Snell & Wilmer L.L.P.",
+            47: "Parker Poe Adams & Berstein LLP", 48: "Seward & Kissel LLP", 49: "Burns & Levinson LLP",
+            50: "Smith, Anderson, Blount, Dorsett, Mitchell & Jernigan, L.L.P", 51: "McDonough, Holland & Allen PC",
+            52: "Zelle, Hofmann, Voelbel & Mason LLP", 53: "Litchfield Cavo LLP", 54: "Margolin, Winer & Evens LLP",
+            55: "Gallaudet University", 56: "Quarles & Brady LLP", 57: "McNees Wallace & Nurick LLC", 58: "Bingham McCutchen LLP",
+            59: "McGlinchey Stafford PLLC", 60: "Carlton Fields Jorden Burt", 62: "Davis Polk & Wardwell LLP",
+            63: "Faegre & Benson LLP", 64: "Morrison & Foerster LLP", 65: "Montgomery, McCracken, Walker & Rhoads, LLP",
+            66: "Holland & Knight LLP", 67: "Rawle & Henderson LLP", 68: "Winthrop & Weinstine, P.A.",
+            69: "Lindabury, McCormick, Estabrook & Cooper, P.C.", 70: "Blake, Cassels & Graydon LLP",
+            71: "Cassels Brock & Blackwell LLP", 72: "Fasken Martineau DuMoulin LLP", 73: "Fraser Milner Casgrain LLP",
+            74: "Goodmans LLP", 75: "Gowling Lafleur Henderson LLP", 76: "Heenan Blaikie LLP", 77: "McMillan LLP",
+            78: "McCarthy Tétrault LLP", 79: "Norton Rose Fulbright Canada LLP", 80: "Torys LLP", 81: "Osler, Hoskin & Harcourt LLP",
+            82: "Stikeman Elliott LLP", 83: "O'Melveny & Myers LLP", 84: "Hirschler Fleischer", 85: "Lewis, Rice & Fingersh, L.C.",
+            87: "Stikeman Elliott LLP (WAVG)", 88: "Anderson Kill & Olick, PC", 89: "Calfee, Halter & Griswold LLP",
+            90: "Torys LLP (NY)", 91: "Miller Thomson LLP", 92: "Allen & Overy LLP", 93: "Osler, Hoskin & Harcourt LLP (New York)",
+            94: "K&L Gates LLP", 95: "Jenner & Block LLP", 96: "Genesis HealthCare Corporation 1-200", 97: "Health Plus",
+            98: "Li & Fung USA", 99: "Fisher & Phillips LLP", 100: "Irving Place Capital", 101: "Jennings, Strouss & Salmon, P.L.C.",
+            102: "Wilkinson Barker Knauer, LLP", 103: "Day Pitney LLP", 104: "Wegmans Food Markets", 105: "Kobre & Kim LLP",
+            106: "Global Brands Group", 107: "Baker Botts L.L.P.", 108: "Holy Redeemer Health System", 109: "Swiss Re Management (US) Corporation",
+            110: "Geller & Company", 111: "Miller, Canfield, Paddock & Stone", 112: "Borden Ladner Gervais", 113: "Tulane University",
+            115: "MRC Global", 116: "Reyes Holdings", 118: "Hawkins Parnell & Young LLP", 119: "McIness Cooper", 121: "Stewart McKelvey",
+            122: "Graydon Head & Ritchey LLP", 123: "ZZZZ", 124: "The Kenan Advantage Group - Staples", 125: "Mayer Brown LLP",
+            126: "U.S. Security Associates, Inc.", 127: "The Hershey Company", 128: "Norris McLaughlin & Marcus, P.A.",
+            129: "Genesis HealthCare Corporation 201-400", 130: "Genesis HealthCare Corporation 401-600", 131: "Constangy, Brooks, Smith & Prophete, LLP",
+            132: "McAfee Taft LLP", 133: "PSS Companies", 134: "Harris Beach PLLC", 135: "Montefiore Health Systems",
+            136: "GCA Services Group", 137: "Morris, Nichols, Arsht & Tunnell LLP", 138: "Kelley Drye & Warren LLP",
+            139: "Neopost USA", 140: "Chiesa Shahinian & Giantomasi PC", 141: "TZP Group", 142: "Manning Gross + Massenburg LLP (MG+M The Law Firm)",
+            143: "Beveridge & Diamond, PC", 148: "Young Conaway Stargatt & Taylor, LLP", 149: "Buckley LLP", 150: "The Kenan Advantage Group-Office Depot",
+            151: "Mount Sinai Health Systems", 153: "Zelle LLP", 154: "Sterling", 155: "Strategic Financial Solutions",
+            156: "Capital Vision", 157: "The Carpenter Health Network", 158: "Mt Sinai Health Systems Toner School",
+            159: "Mt Sinai Health Systems Reports", 160: "Commonwealth Care Alliance", 161: "Cleary Gottlieb Steen & Hamilton LLP",
+            162: "Kaufman Borgeest Ryan LLP - FedEx Pricing Audit", 163: "Simpson Thacher & Bartlett LLP", 164: "Winget, Spadafora & Schwartzberg, LLP",
+            165: "Advanced Recovery Systems, LLC", 166: "Diversified", 167: "Monotype", 168: "Skadden, Arps, Slate, Meagher & Flom LLP",
+            169: "HERRICK FEINSTEIN LLP", 170: "Armstrong Flooring", 171: "Berger & Montague P.C.", 172: "Robinson Bradshaw & Hinson PA",
+            173: "Archer & Greiner, P.C.", 174: "McCarter & English", 175: "Hospital for Special Care", 176: "Ballard Spahr",
+            177: "Ballard Spahr", 178: "Shumaker, Loop & Kendrick", 179: "Dorsey & Whitney", 180: "Munger, Tolles & Olson",
+            181: "Paul Hastings", 182: "Nelson Mullins Riley & Scarborough", 183: "Davis Wright Tremaine", 184: "Stoel Rives",
+            185: "Blank Rome", 186: "Invesco ltd", 187: "Promedica", 188: "Davis Polk", 191: "Monarch Healthcare",
+            192: "Genesis HealthCare", 193: "Big Lift LLC", 194: "Invesco", 195: "IB Goodman", 196: "Sentrilock, LLC",
+            197: "United Courier", 198: "Reliant Healthcare", 199: "Keller & Heckman", 200: "Chapman and Cutler LLP",
+            201: "Schulte Roth & Zabel LLP", 202: "Maplewood Senior Living", 203: "Food to Live", 204: "Enexia Specialty Pharmacy",
+            205: "GLDN", 206: "Precision Compounding Pharmacy and Wellness", 207: "GHC", 208: "Demo Client", 209: "MBK Senior Living",
+            210: "Calavo", 211: "Huntons Andrew Kurth", 212: "Adler Pollock & Sheehan PC", 213: "Moses & Singer LLP",
+            214: "SavaSeniorCare, LLC", 215: "Bond, Schoeneck & King", 216: "American Broadcasting Company (ABC)", 217: "Brownstein Hyatt Farber Schreck",
+            218: "Carter Ledyard & Milburn", 219: "Condon & Forsyth LLP", 220: "Cravath, Swaine & Moore", 221: "Finn Dixon & Herling",
+            222: "Foley & Lardner", 223: "Katten Muchin Rosenman", 224: "Kirkland & Ellis", 225: "Manatt, Phelps & Phillips",
+            226: "Milbank", 227: "Pace LLP", 228: "Proskauer Rose LLP", 229: "Zuckerman Spaeder", 230: "Greenberg Traurig",
+            231: "Care Initiatives", 232: "Stamford JCC", 233: "Natures Sunshine", 234: "Legacy Senior Living",
+            235: "Healthcare Services Group", 236: "Willkie Farr & Gallagher LLP", 237: "Freshfields", 238: "Shalby Advanced Technologies",
+            239: "Elara Caring", 240: "Ogletree Deakins", 241: "Ogletree Deakins benchm", 242: "C Spire", 243: "Consensus Health",
+            244: "ENT and Allergy Associates", 245: "Anderson Automotive Group", 246: "Bricker Graydon LLP", 247: "Pulmonary Exchange",
+            248: "Bria", 249: "Internal Portal", 250: "Frost Brown Todd LLP", 251: "Imagination Technologies", 252: "DocGo",
+            253: "Prospect Demo", 254: "Transitions Healthcare LLC", 255: "Crash Champions", 256: "HWG LLP", 257: "PL Development",
+            258: "Super Natural Distributors", 259: "Steptoe", 260: "Windy City", 261: "House of Cheatham", 262: "CareAbout Health",
+            263: "Sullivan & Cromwell", 265: "Baker Botts", 266: "Morrison Cohen LLP",
+            264: "Ankura Consulting Group", 268: "Small Demo", 269: "Akerman LLP"
+        };
+
+        // Helper function to get attorney display from client name
+        function getAttorneyDisplay(clientName) {
+            if (attorneyMapping.hasOwnProperty(clientName)) {
+                return `${attorneyMapping[clientName]}`;
+            }
+            return "Corp";
+        }
+
+        function formatContractAnalysisResponse(analysis, filename, similarContracts) {
+            console.log('🚀 formatContractAnalysisResponse called with:', {
+                hasAnalysis: !!analysis,
+                filename: filename,
+                similarContractsCount: similarContracts ? similarContracts.length : 'null/undefined'
+            });
+            let formatted = `**Contract Analysis Results for: ${filename}**\n\n`;
+            
+            // Parse JSON from analysis for user-friendly display
+            let contractSummary = null;
+            let analysisText = analysis;
+            
+            // Try to extract JSON from analysis - handle multiple formats
+            const jsonMatch = analysis.match(/```json\s*([\s\S]*?)\s*```/);
+            if (jsonMatch) {
+                try {
+                    contractSummary = JSON.parse(jsonMatch[1]);
+                    analysisText = analysis.replace(/```json\s*[\s\S]*?\s*```/, '').trim();
+                } catch (e) {
+                    console.warn('Could not parse JSON from analysis:', e);
+                }
+            }
+            
+            // If no JSON block found, look for "JSON Summary:" pattern
+            if (!contractSummary) {
+                const jsonSummaryMatch = analysis.match(/JSON Summary:\s*(\{[\s\S]*)/i);
+                if (jsonSummaryMatch) {
+                    try {
+                        contractSummary = JSON.parse(jsonSummaryMatch[1].trim());
+                        analysisText = analysis.replace(/JSON Summary:\s*\{[\s\S]*/, '').trim();
+                        console.log('✅ Parsed JSON from "JSON Summary:" section');
+                    } catch (e) {
+                        console.warn('Could not parse JSON Summary section:', e);
+                    }
+                }
+            }
+            
+            // If still no JSON, try direct JSON (entire content might be JSON)
+            if (!contractSummary) {
+                try {
+                    // Try to parse the entire analysis as JSON first
+                    contractSummary = JSON.parse(analysis.trim());
+                    analysisText = ''; // No additional text if entire content is JSON
+                } catch (e) {
+                    // If that fails, try to find JSON object within text
+                    const directJsonMatch = analysis.match(/\{[\s\S]*?\}/);
+                    if (directJsonMatch) {
+                        try {
+                            contractSummary = JSON.parse(directJsonMatch[0]);
+                            analysisText = analysis.replace(/\{[\s\S]*?\}/, '').trim();
+                        } catch (e2) {
+                            console.warn('Could not parse direct JSON:', e2);
+                        }
+                    }
+                }
+            }
+            
+            // Format analysis text with numbered list line breaks
+            let formattedText = analysisText && analysisText.trim() ? analysisText : analysis;
+            
+            // Add line breaks before numbered points (1. 2. 3. etc.)
+            formattedText = formattedText.replace(/(\d+\.\s)/g, '\n$1');
+            
+            // Convert to HTML with proper formatting
+            formattedText = formattedText
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text
+                .replace(/\n\n/g, '</p><p>') // Paragraph breaks
+                .replace(/\n/g, '<br>') // Line breaks
+                .replace(/^/, '<p>') // Start with paragraph
+                .replace(/$/, '</p>'); // End with paragraph
+            
+            formatted += formattedText + '\n\n';
+            
+            
+            // If there are similar contracts, add them as a complete table like in the main tab
+            console.log('🔍 Checking similar contracts condition:', {
+                similarContracts: similarContracts,
+                hasContracts: !!similarContracts,
+                length: similarContracts ? similarContracts.length : 'N/A'
+            });
+            if (similarContracts && similarContracts.length > 0) {
+                console.log('✅ Entering similar contracts table generation');
+                formatted += '\n\n<div style="margin: 20px 0;">';
+                formatted += `<h4 style="color: #374151; margin-bottom: 15px;">Contracts for the Same Vendor (${similarContracts.length} found)</h4>`;
+                formatted += '<div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px;">';
+                formatted += '<table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">';
+                formatted += '<colgroup>';
+                formatted += '<col style="width: 15%;">';
+                formatted += '<col style="width: 15%;">';
+                formatted += '<col style="width: 20%;">';
+                formatted += '<col style="width: 15%;">';
+                formatted += '<col style="width: 10%;">';
+                formatted += '<col style="width: 20%;">'; // Period column - increased from default
+                formatted += '<col style="width: 10%;">';
+                formatted += '<col style="width: 15%;">';
+                formatted += '</colgroup>';
+                formatted += '<thead style="background: #f8fafc;"><tr>';
+                formatted += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600;">Contract ID</th>';
+                formatted += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600;">Client</th>';
+                formatted += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600;">Contract Name</th>';
+                formatted += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600;">Vendor</th>';
+                formatted += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600;">Product/Service</th>';
+                formatted += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600;">Period</th>';
+                formatted += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600;">Spend</th>';
+                formatted += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600;">Actions</th>';
+                formatted += '</tr></thead><tbody>';
+
+                // Sort similar contracts by spend (highest first)
+                similarContracts.sort((a, b) => {
+                    const spendA = parseFloat(a.spend) || 0;
+                    const spendB = parseFloat(b.spend) || 0;
+                    return spendB - spendA;
+                });
+
+                similarContracts.forEach((contract, index) => {
+                    // Map client like in main page - do the mapping in frontend
+                    const clnumKey = parseInt(contract.clnum);
+                    const clientName = clientMapping[clnumKey] || contract.clientName || `Client ${contract.clnum || 'Unknown'}`;
+                    const attorneyDisplay = getAttorneyDisplay(clientName);
+                    
+                    console.log('🔍 Client mapping in chatbot:', {
+                        originalClnum: contract.clnum,
+                        parsedClnumKey: clnumKey,
+                        mappedClientName: clientName,
+                        attorneyDisplay: attorneyDisplay
+                    });
+                    const spendDisplay = contract.spend
+                        ? (contract.currency ? contract.currency + formatContractNumber(contract.spend) : '$' + formatContractNumber(contract.spend))
+                        : '$0.00';
+                    
+                    const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                    let fileUrl = contract.file;
+                    if (fileUrl && fileUrl.includes('ccm-contracts.s3.amazonaws.com')) {
+                        fileUrl = fileUrl.replace('ccm-contracts.s3.amazonaws.com', 'ccm-contracts.s3.us-east-1.amazonaws.com');
+                    }
+
+                    formatted += `<tr style="background: ${bgColor};">`;
+                    formatted += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6;">${contract.contract_id || contract.id || 'N/A'}</td>`;
+                    formatted += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6;"><strong>${attorneyDisplay}</strong></td>`;
+                    formatted += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6;">${contract.contract_name || 'N/A'}</td>`;
+                    formatted += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6;">${contract.vendor_name || 'N/A'}</td>`;
+                    formatted += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6;">${contract.product || 'N/A'}</td>`;
+                    formatted += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6; font-size: 0.8em;">`;
+                    formatted += `<strong>Start:</strong> ${formatDateFromNumber(contract.start_date)}<br>`;
+                    formatted += `<strong>End:</strong> ${formatDateFromNumber(contract.end_date)}</td>`;
+                    formatted += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6; font-weight: 600;">${spendDisplay}</td>`;
+                    formatted += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6;">`;
+                    
+                    if (fileUrl) {
+                        formatted += `<button onclick="previewFileFromChat('${fileUrl}')" style="background: #1e3a8a; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75em; margin: 1px; display: block; width: 100%;">Preview</button>`;
+                        formatted += `<button onclick="downloadFileFromChat('${fileUrl}', '${contract.contract_name || 'contract'}')" style="background: #3b82f6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75em; margin: 1px; display: block; width: 100%;">Download</button>`;
+                        formatted += `<button onclick="compareContractFromChat('${fileUrl}', '${contract.contract_name || 'contract'}')" style="background: #fbbf24; color: #1f2937; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75em; margin: 1px; display: block; width: 100%;">Compare</button>`;
+                    } else {
+                        formatted += `<span style="color: #6b7280; font-size: 0.8em;">No file</span>`;
+                    }
+                    
+                    formatted += `</td></tr>`;
+                });
+
+                formatted += '</tbody></table></div></div>\n\n';
+            }
+            
+            return formatted;
+        }
+
+        // Helper functions for contract formatting
+        function formatContractNumber(num) {
+            if (!num) return '0.00';
+            return parseFloat(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatDateFromNumber(dateNumber) {
+            if (!dateNumber) return 'N/A';
+            const dateStr = dateNumber.toString();
+            if (dateStr.length === 8) {
+                const year = dateStr.substring(0, 4);
+                const month = dateStr.substring(4, 6);
+                const day = dateStr.substring(6, 8);
+                return `${year}-${month}-${day}`;
+            }
+            return dateNumber;
+        }
+
+        function formatContractDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        // Initialize AI Chat History
+        class AIChatHistory {
+            constructor() {
+                this.currentConversationId = null;
+                this.conversations = [];
+                this.loadConversations();
+            }
+
+            async loadConversations() {
+                try {
+                    const response = await fetch('/api/chat/conversations', {
+                        credentials: 'include'
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            this.conversations = data.conversations.map(conv => ({
+                                ...conv,
+                                id: String(conv.id)
+                            }));
+                            this.updateHistoryUI();
+                            console.log('✅ AI conversations loaded:', this.conversations.length);
+                        }
+                    } else if (response.status === 401) {
+                        console.log('🔐 Not authenticated for AI chat history');
+                    }
+                } catch (error) {
+                    console.warn('Failed to load AI conversations:', error);
+                }
+            }
+
+            updateHistoryUI() {
+                const historyContainer = document.getElementById('aiHistoryList');
+                if (!historyContainer) return;
+
+                if (this.conversations.length === 0) {
+                    historyContainer.innerHTML = `
+                        <div style="text-align: center; padding: 40px 20px; color: #9ca3af;">
+                            <div style="font-size: 2em; margin-bottom: 10px;">💬</div>
+                            No conversations yet<br>
+                            <small style="color: #6b7280; font-size: 0.8em;">Start a new conversation to see it here</small>
+                        </div>
+                    `;
+                    return;
+                }
+
+                historyContainer.innerHTML = '';
+
+                const sortedConversations = [...this.conversations].sort((a, b) => {
+                    const dateA = new Date(a.updated_at || a.created_at);
+                    const dateB = new Date(b.updated_at || b.created_at);
+                    return dateB - dateA;
+                });
+
+                sortedConversations.forEach(conversation => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    if (conversation.id == this.currentConversationId) {
+                        historyItem.classList.add('active');
+                    }
+
+                    const date = new Date(conversation.updated_at || conversation.created_at);
+                    const isToday = date.toDateString() === new Date().toDateString();
+                    const isYesterday = date.toDateString() === new Date(Date.now() - 86400000).toDateString();
+                    
+                    let dateStr;
+                    if (isToday) {
+                        dateStr = 'Today ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    } else if (isYesterday) {
+                        dateStr = 'Yesterday ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    } else {
+                        dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    }
+
+                    const title = conversation.title || 'Untitled Conversation';
+                    const truncatedTitle = title.length > 30 ? title.substring(0, 30) + '...' : title;
+
+                    historyItem.innerHTML = `
+                        <div class="history-item-content" onclick="aiChatHistory.loadConversation('${conversation.id}')">
+                            <div class="history-title" title="${title}">${truncatedTitle}</div>
+                            <div class="history-date">${dateStr}</div>
+                            <div class="history-preview">${conversation.message_count || 0} messages</div>
+                        </div>
+                        <div class="history-actions">
+                            <button class="history-action-btn history-export-btn" 
+                                    onclick="event.stopPropagation(); aiChatHistory.exportConversation('${conversation.id}')" 
+                                    title="Export conversation">
+                                ↓
+                            </button>
+                            <button class="history-action-btn history-delete-btn" 
+                                    onclick="event.stopPropagation(); aiChatHistory.deleteConversation('${conversation.id}')" 
+                                    title="Delete conversation">
+                                ×
+                            </button>
+                        </div>
+                    `;
+
+                    historyContainer.appendChild(historyItem);
+                });
+            }
+
+            async startNewConversation() {
+                try {
+                    const response = await fetch('/api/chat/conversations', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            title: 'New Conversation'
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            this.currentConversationId = String(data.conversationId);
+                            await this.loadConversations();
+                            console.log('✅ New AI conversation created:', this.currentConversationId);
+                            return this.currentConversationId;
+                        }
+                    } else if (response.status === 401) {
+                        this.currentConversationId = 'local_' + Date.now();
+                        return this.currentConversationId;
+                    } else {
+                        throw new Error('Failed to create conversation');
+                    }
+                } catch (error) {
+                    console.error('Error creating AI conversation:', error);
+                    this.currentConversationId = 'local_' + Date.now();
+                    return this.currentConversationId;
+                }
+            }
+
+            async addMessage(content, sender, fileInfo = null) {
+                if (!this.currentConversationId) {
+                    await this.startNewConversation();
+                }
+
+                if (this.currentConversationId.startsWith('local_')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/chat/conversations/${this.currentConversationId}/messages`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            content: content,
+                            sender: sender,
+                            fileInfo: fileInfo
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            setTimeout(() => {
+                                this.loadConversations();
+                            }, 100);
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ Error adding AI message:', error);
+                }
+            }
+
+            async loadConversation(conversationId) {
+                if (conversationId.startsWith('local_')) {
+                    this.currentConversationId = conversationId;
+                    this.updateHistoryUI();
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/chat/conversations/${conversationId}/messages`, {
+                        credentials: 'include'
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            this.currentConversationId = conversationId;
+                            this.displayConversation({
+                                id: conversationId,
+                                messages: data.messages
+                            });
+                            this.updateHistoryUI();
+                            console.log('✅ AI Conversation loaded:', conversationId);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading AI conversation:', error);
+                }
+            }
+
+            displayConversation(conversation) {
+                // 切换到聊天模式
+                if (isInitialState) {
+                    switchToChatMode();
+                }
+
+                const messagesContainer = document.getElementById('aiMessages');
+                if (!messagesContainer) return;
+
+                messagesContainer.innerHTML = '';
+                aiConversationHistory = [];
+                
+                if (conversation.messages && conversation.messages.length > 0) {
+                    conversation.messages.forEach(message => {
+                        let fileInfo = null;
+                        if (message.file_info) {
+                            try {
+                                fileInfo = typeof message.file_info === 'string' 
+                                    ? JSON.parse(message.file_info) 
+                                    : message.file_info;
+                            } catch (e) {
+                                console.warn('Failed to parse AI file info:', e);
+                            }
+                        }
+                        
+                        addAIMessage(message.content, message.sender, fileInfo, false);
+                        
+                        aiConversationHistory.push({
+                            role: message.sender === 'user' ? 'user' : 'assistant',
+                            content: message.content
+                        });
+                    });
+                }
+                
+                createAITypingIndicator();
+            }
+
+            async exportConversation(conversationId) {
+                if (conversationId.startsWith('local_')) {
+                    alert('Cannot export local conversations');
+                    return;
+                }
+
+                try {
+                    console.log('📤 Exporting conversation:', conversationId);
+                    
+                    const response = await fetch(`/api/chat/conversations/${conversationId}/messages`, {
+                        credentials: 'include'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch conversation');
+                    }
+                    
+                    const data = await response.json();
+                    if (!data.success) {
+                        throw new Error('Failed to load conversation data');
+                    }
+                    
+                    const conversation = this.conversations.find(conv => conv.id == conversationId);
+                    if (!conversation) {
+                        throw new Error('Conversation not found');
+                    }
+                    
+                    const htmlContent = this.generateReadableHTML(conversation, data.messages);
+                    
+                    const blob = new Blob([htmlContent], { 
+                        type: 'text/html;charset=utf-8' 
+                    });
+                    
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    
+                    const cleanTitle = (conversation.title || 'conversation')
+                        .replace(/[^a-z0-9]/gi, '_')
+                        .substring(0, 50);
+                    const timestamp = new Date().toISOString().split('T')[0];
+                    
+                    link.download = `chat_${cleanTitle}_${timestamp}.html`;
+                    link.click();
+                    
+                    URL.revokeObjectURL(url);
+                    
+                    console.log('✅ Conversation exported successfully');
+                    
+                } catch (error) {
+                    console.error('❌ Export failed:', error);
+                    alert('Failed to export conversation: ' + error.message);
+                }
+            }
+
+            generateReadableHTML(conversation, messages) {
+                const exportDate = new Date().toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                const conversationDate = new Date(conversation.created_at).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                let messagesHTML = '';
+                
+                messages.forEach(msg => {
+                    const timestamp = new Date(msg.created_at).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    const isUser = msg.sender === 'user';
+                    const senderName = isUser ? 'You' : 'AI Assistant';
+                    const messageClass = isUser ? 'user-message' : 'ai-message';
+                    
+                    let formattedContent = msg.content
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/`(.*?)`/g, '<code>$1</code>')
+                        .replace(/\n/g, '<br>');
+
+                    let fileInfo = '';
+                    if (msg.file_info) {
+                        try {
+                            const fileData = typeof msg.file_info === 'string' ? JSON.parse(msg.file_info) : msg.file_info;
+                            fileInfo = `
+                                <div class="file-attachment">
+                                    📎 <strong>File:</strong> ${fileData.name} (${(fileData.size / 1024 / 1024).toFixed(2)} MB)
+                                </div>
+                            `;
+                        } catch (e) {
+                            console.warn('Failed to parse file info');
+                        }
+                    }
+
+                    messagesHTML += `
+                        <div class="message ${messageClass}">
+                            <div class="message-header">
+                                <span class="sender">${senderName}</span>
+                                <span class="timestamp">${timestamp}</span>
+                            </div>
+                            ${fileInfo}
+                            <div class="message-content">
+                                ${formattedContent}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Conversation - ${conversation.title}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9fafb;
+            color: #374151;
+        }
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            color: #1f2937;
+            margin: 0 0 15px 0;
+            font-size: 2em;
+        }
+        .conversation-info {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #6b7280;
+        }
+        .conversation-info div {
+            margin-bottom: 5px;
+        }
+        .chat-container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .message {
+            margin-bottom: 25px;
+            padding: 20px;
+            border-radius: 12px;
+            position: relative;
+        }
+        .user-message {
+            background: #BDC3C7;
+        }
+        .ai-message {
+            background: #F9FAFB;
+        }
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+        .sender {
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .timestamp {
+            color: #6b7280;
+        }
+        .message-content {
+            font-size: 1em;
+            line-height: 1.6;
+        }
+        .message-content strong {
+            font-weight: 600;
+        }
+        .message-content em {
+            font-style: italic;
+        }
+        .message-content code {
+            background: #f3f4f6;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+        .file-attachment {
+            background: #505E74;
+            border: 1px solid #505E74;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            color: #ffffff;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #6b7280;
+            font-size: 0.9em;
+            border-top: 1px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>${conversation.title || 'Chat Conversation'}</h1>
+        <div class="conversation-info">
+            <div><strong>Started:</strong> ${conversationDate}</div>
+            <div><strong>Messages:</strong> ${messages.length}</div>
+            <div><strong>Exported:</strong> ${exportDate}</div>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        ${messagesHTML}
+    </div>
+
+    <div class="footer">
+        <p>This conversation was exported from AI Assistant Chat</p>
+        <p>Exported on ${exportDate}</p>
+    </div>
+</body>
+</html>`;
+            }
+
+            async deleteConversation(conversationId) {
+                if (!confirm('Are you sure you want to delete this conversation?')) {
+                    return;
+                }
+
+                if (conversationId.startsWith('local_')) {
+                    if (this.currentConversationId === conversationId) {
+                        this.currentConversationId = null;
+                        clearAIConversation();
+                    }
+                    this.updateHistoryUI();
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/chat/conversations/${conversationId}`, {
+                        method: 'DELETE',
+                        credentials: 'include'
+                    });
+
+                    if (response.ok) {
+                        if (this.currentConversationId === conversationId) {
+                            this.currentConversationId = null;
+                            clearAIConversation();
+                        }
+                        
+                        await this.loadConversations();
+                    }
+                } catch (error) {
+                    console.error('Error deleting AI conversation:', error);
+                }
+            }
+        }
+
+        function clearAIConversation() {
+            aiConversationHistory = [];
+            currentAIUploadedFile = null;
+            removeAIUploadedFile();
+            
+            // 重置为初始状态
+            const container = document.getElementById('chatContainer');
+            container.classList.add('initial-state');
+            isInitialState = true;
+            
+            const messagesContainer = document.getElementById('aiMessages');
+            if (messagesContainer) {
+                messagesContainer.innerHTML = '';
+                createAITypingIndicator();
+            }
+            
+            // 清空输入框
+            const input = document.getElementById('aiInput');
+            if (input) {
+                input.value = '';
+            }
+            
+            if (aiChatHistory) {
+                aiChatHistory.startNewConversation();
+            }
+        }
+
+        function handleAIKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendAIMessage();
+            }
+        }
+
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        function handleAIFileUpload(input) {
+            const file = input.files?.[0];
+            if (file) {
+                currentAIUploadedFile = file;
+                showAIFilePreview(file);
+                
+                const sendBtn = document.getElementById('aiSend');
+                if (sendBtn) {
+                    sendBtn.classList.add('with-file');
+                }
+                
+                const messageInput = document.getElementById('aiInput');
+                if (messageInput) {
+                    messageInput.focus();
+                }
+                
+                console.log('📎 AI file selected:', file.name, file.type, (file.size / 1024 / 1024).toFixed(2) + 'MB');
+            }
+        }
+
+        function showAIFilePreview(file) {
+            const preview = document.getElementById('aiUploadedFilePreview');
+            const nameElement = document.getElementById('aiFilePreviewName');
+            const sizeElement = document.getElementById('aiFilePreviewSize');
+            
+            if (preview && nameElement && sizeElement) {
+                nameElement.textContent = file.name;
+                sizeElement.textContent = (file.size / 1024 / 1024).toFixed(2) + 'MB';
+                
+                preview.style.display = 'block';
+            }
+        }
+
+        function removeAIUploadedFile() {
+            console.log('🧹 Removing uploaded file from UI');
+            
+            currentAIUploadedFile = null;
+            
+            const preview = document.getElementById('aiUploadedFilePreview');
+            if (preview) {
+                preview.style.display = 'none';
+                console.log('✅ File preview hidden');
+            }
+            
+            const fileInput = document.getElementById('aiFileInput');
+            if (fileInput) {
+                fileInput.value = '';
+                console.log('✅ File input cleared');
+            }
+            
+            const sendBtn = document.getElementById('aiSend');
+            if (sendBtn) {
+                sendBtn.classList.remove('with-file');
+                console.log('✅ Send button style reset');
+            }
+            
+            const nameElement = document.getElementById('aiFilePreviewName');
+            const sizeElement = document.getElementById('aiFilePreviewSize');
+            if (nameElement) nameElement.textContent = '';
+            if (sizeElement) sizeElement.textContent = '';
+            
+            console.log('🧹 File cleanup completed');
+        }
+
+        async function sendAIMessage() {
+            const input = document.getElementById('aiInput');
+            
+            if (!input) {
+                console.error('❌ AI input element not found');
+                return;
+            }
+            
+            const message = input.value.trim();
+            
+            if (!message && !currentAIUploadedFile) {
+                return;
+            }
+
+            // Handle special modes
+            if (window.currentMode === 'vendor_name_input') {
+                handleVendorNameInput(message);
+                return;
+            } else if (window.currentMode === 'data_source_input') {
+                handleDataSourceInput(message);
+                return;
+            }
+
+            // 确保切换到聊天模式
+            if (isInitialState) {
+                switchToChatMode();
+            }
+            
+            let displayMessage = message || 'Please analyze this file.';
+            
+            const fileForDisplay = currentAIUploadedFile;
+            
+            if (fileForDisplay) {
+                displayMessage = `📎 ${fileForDisplay.name}\n${displayMessage}`;
+            }
+            
+            addAIMessage(displayMessage, 'user', fileForDisplay, true);
+            
+            input.value = '';
+            input.style.height = 'auto';
+            
+            showAITypingIndicator(true);
+
+            try {
+                let response;
+                
+                if (currentAIUploadedFile) {
+                    // Check if this is for contract analysis
+                    if (window.contractAnalysisMode) {
+                        const formData = new FormData();
+                        formData.append('contract', currentAIUploadedFile);
+                        formData.append('comparisonType', 'general');
+                        
+                        response = await fetch('/api/analyze-contract', {
+                            method: 'POST',
+                            credentials: 'include',
+                            body: formData
+                        });
+                        
+                        window.contractAnalysisMode = false; // Reset flag
+                    } else {
+                        const formData = new FormData();
+                        formData.append('file', currentAIUploadedFile);
+                        formData.append('message', message);
+                        formData.append('conversationHistory', JSON.stringify(aiConversationHistory));
+                        
+                        response = await fetch('/api/chat/upload', {
+                            method: 'POST',
+                            credentials: 'include',
+                            body: formData
+                        });
+                    }
+                } else {
+                    response = await fetch('/api/chat', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            conversationHistory: aiConversationHistory
+                        })
+                    });
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    aiConversationHistory.push({
+                        role: 'user',
+                        content: message || 'File uploaded for analysis'
+                    });
+                    
+                    let responseContent;
+                    // Handle contract analysis response
+                    if (result.analysis && result.filename) {
+                        responseContent = formatContractAnalysisResponse(result.analysis, result.filename, result.similarContracts);
+                    } else {
+                        responseContent = result.response;
+                    }
+                    
+                    aiConversationHistory.push({
+                        role: 'assistant',
+                        content: responseContent
+                    });
+                    
+                    if (aiConversationHistory.length > 20) {
+                        aiConversationHistory = aiConversationHistory.slice(-20);
+                    }
+                    
+                    addAIMessage(responseContent, 'bot', null, true);
+                    
+                } else {
+                    console.error('❌ AI Server error:', result.error);
+                    addAIMessage(result.error || 'Sorry, I encountered an error. Please try again.', 'bot');
+                }
+
+            } catch (error) {
+                console.error('❌ AI Chat error:', error);
+                addAIMessage('Sorry, I encountered an error. Please check your connection and try again.', 'bot');
+            } finally {
+                showAITypingIndicator(false);
+                
+                if (currentAIUploadedFile) {
+                    console.log('🧹 Cleaning up file after message sent');
+                    removeAIUploadedFile();
+                }
+            }
+        }
+
+        function addAIMessage(content, sender, file = null, saveToHistory = true) {
+            const messagesContainer = document.getElementById('aiMessages');
+            if (!messagesContainer) return;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            if (file) {
+                messageDiv.classList.add('file-message');
+            }
+            
+            let formattedContent = content;
+            
+            // Only apply markdown formatting if content doesn't contain HTML tags
+            if (!content.includes('<div') && !content.includes('<button') && !content.includes('<table')) {
+                formattedContent = content
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/`(.*?)`/g, '<code>$1</code>')
+                    .replace(/\n/g, '<br>');
+            }
+            
+            let fileHeader = '';
+            if (file) {
+                const fileName = file.name || 'Unknown file';
+                const fileSize = file.size ? (file.size / 1024 / 1024).toFixed(2) + 'MB' : 'Unknown size';
+                fileHeader = `<div style="background: rgba(30, 64, 175, 0.1); padding: 8px 12px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #1e40af;">
+                    ${fileName} (${fileSize})
+                </div>`;
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${fileHeader}
+                    ${formattedContent}
+                </div>
+            `;
+            
+            const typingIndicator = document.getElementById('aiTypingIndicator');
+            if (typingIndicator) {
+                messagesContainer.insertBefore(messageDiv, typingIndicator);
+            } else {
+                messagesContainer.appendChild(messageDiv);
+            }
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            if (saveToHistory && aiChatHistory) {
+                const fileInfo = file ? {
+                    name: file.name || 'Unknown file',
+                    size: file.size || 0,
+                    type: file.type || 'unknown'
+                } : null;
+                
+                aiChatHistory.addMessage(content, sender, fileInfo);
+            }
+        }
+
+        function showAITypingIndicator(show) {
+            const indicator = document.getElementById('aiTypingIndicator');
+            const messagesContainer = document.getElementById('aiMessages');
+            
+            if (!indicator) {
+                createAITypingIndicator();
+                return showAITypingIndicator(show);
+            }
+            
+            if (!messagesContainer) {
+                console.error('❌ AI Messages container element not found');
+                return;
+            }
+            
+            if (show) {
+                indicator.style.display = 'flex';
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } else {
+                indicator.style.display = 'none';
+            }
+        }
+
+        function createAITypingIndicator() {
+            const messagesContainer = document.getElementById('aiMessages');
+            if (!messagesContainer) return;
+            
+            if (document.getElementById('aiTypingIndicator')) return;
+            
+            const typingIndicator = document.createElement('div');
+            typingIndicator.id = 'aiTypingIndicator';
+            typingIndicator.className = 'typing-indicator';
+            typingIndicator.style.display = 'none';
+            typingIndicator.innerHTML = `
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(typingIndicator);
+        }
+
+        function filterAIHistory(searchTerm) {
+            const historyItems = document.querySelectorAll('#aiHistoryList .history-item');
+            const searchLower = searchTerm.toLowerCase().trim();
+            
+            historyItems.forEach(item => {
+                const titleElement = item.querySelector('.history-title');
+                const title = titleElement ? titleElement.textContent.toLowerCase() : '';
+                
+                if (searchLower === '' || title.includes(searchLower)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Initialize drag and drop for AI file area
+        function initializeAIDragDrop() {
+            const fileArea = document.getElementById('aiFileArea');
+            
+            if (!fileArea) {
+                return;
+            }
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                fileArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                fileArea.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                fileArea.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight(e) {
+                fileArea.classList.add('dragover');
+            }
+            
+            function unhighlight(e) {
+                fileArea.classList.remove('dragover');
+            }
+            
+            fileArea.addEventListener('drop', handleAIDrop, false);
+            
+            function handleAIDrop(e) {
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    currentAIUploadedFile = files[0];
+                    showAIFilePreview(files[0]);
+                    
+                    const sendBtn = document.getElementById('aiSend');
+                    if (sendBtn) {
+                        sendBtn.classList.add('with-file');
+                    }
+                    
+                    console.log('📎 AI file dropped:', files[0].name);
+                }
+            }
+        }
+
+        // 搜索模式状态
+        let isGoogleSearchMode = false;
+
+        // 切换搜索模式
+        function toggleSearchMode() {
+            const btn = document.getElementById('searchModeBtn');
+            const indicator = document.getElementById('searchModeIndicator');
+            const input = document.getElementById('aiInput');
+            const container = document.getElementById('chatContainer');
+            const googleContainer = document.getElementById('googleSearchContainer');
+            const modeIcon = btn.querySelector('.mode-icon');
+            const modeText = indicator.querySelector('.mode-text');
+            
+            isGoogleSearchMode = !isGoogleSearchMode;
+            
+            if (isGoogleSearchMode) {
+                // 切换到 Google 搜索模式
+                btn.classList.add('google-mode');
+                indicator.classList.add('google-mode');
+                input.classList.add('google-mode');
+                container.classList.add('google-search-mode');
+                googleContainer.classList.add('active');
+                
+                modeIcon.textContent = 'External';
+                modeText.textContent = 'External Search Mode';
+                input.placeholder = 'External Search...';
+                
+                // 在全局变量区域添加
+                let googleSearchInitialized = false;
+
+                setTimeout(() => {
+                    const googleContainer = document.getElementById('googleSearchContainer');
+                    
+                    // 如果容器为空且Google搜索可用，才进行初始化
+                    if (window.google && window.google.search && googleContainer.children.length === 0) {
+                        try {
+                            window.google.search.cse.element.render({
+                                div: "googleSearchContainer",
+                                tag: 'search'
+                            });
+                            console.log('Google CSE initialized successfully');
+                        } catch (e) {
+                            console.log('Google CSE initialization failed:', e);
+                        }
+                    }
+                }, 100);
+                
+            } else {
+                // 切换回 AI 助手模式
+                btn.classList.remove('google-mode');
+                indicator.classList.remove('google-mode');
+                input.classList.remove('google-mode');
+                container.classList.remove('google-search-mode');
+                googleContainer.classList.remove('active');
+                
+                modeIcon.textContent = 'Aria';
+                modeText.textContent = 'AI Assistant Mode';
+                input.placeholder = 'Message Aria...';
+            }
+        }
+
+        // 修改发送消息函数
+        function sendMessage() {
+            if (isGoogleSearchMode) {
+                // Google 搜索模式：触发 Google 搜索
+                const query = document.getElementById('aiInput').value.trim();
+                if (query) {
+                    // Google CSE 会自动处理搜索
+                    const searchBox = document.querySelector('.gsc-input input');
+                    if (searchBox) {
+                        searchBox.value = query;
+                        searchBox.dispatchEvent(new Event('input'));
+                        // 触发搜索
+                        const searchBtn = document.querySelector('.gsc-search-button input');
+                        if (searchBtn) {
+                            searchBtn.click();
+                        }
+                    }
+                    document.getElementById('aiInput').value = '';
+                }
+            } else {
+                // AI 模式：使用原有的 sendAIMessage 函数
+                sendAIMessage();
+            }
+        }
+
+        // 处理回车键
+        function handleAIKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Google CSE 初始化回调
+        window.__gcse = {
+            parsetags: 'onload',
+            callback: function() {
+                console.log('Google Custom Search Engine loaded');
+            }
+        };
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            aiChatHistory = new AIChatHistory();
+            createAITypingIndicator();
+            initializeAIDragDrop();
+            
+            console.log('✅ AI Assistant initialized');
+        });
+
+        // Handle message from parent window to close chatbot
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'closeChatbot') {
+                // This will be handled by the parent window
+            }
+        });
+
+        // Modal functionality for contract comparison
+        let selectedReferenceContract = null;
+        let newContractForComparison = null;
+
+        function openComparisonModal(fileUrl, contractName) {
+            selectedReferenceContract = { 
+                url: fileUrl, 
+                name: contractName.replace(/'/g, "\\'")
+            };
+            
+            // Show reference contract info
+            document.getElementById('referenceContractName').textContent = contractName;
+            document.getElementById('contractComparisonModal').style.display = 'block';
+            
+            // Reset state
+            newContractForComparison = null;
+            document.getElementById('newContractInfo').style.display = 'none';
+            document.getElementById('startComparisonBtn').disabled = true;
+            document.getElementById('comparisonResults').style.display = 'none';
+            document.getElementById('comparisonError').style.display = 'none';
+            document.getElementById('comparisonLoading').style.display = 'none';
+        }
+
+        function closeComparisonModal() {
+            document.getElementById('contractComparisonModal').style.display = 'none';
+            selectedReferenceContract = null;
+            newContractForComparison = null;
+        }
+
+        function handleNewContractUpload(input) {
+            const file = input.files?.[0];
+            if (file) {
+                newContractForComparison = file;
+                
+                document.getElementById('newContractFileName').textContent = file.name;
+                document.getElementById('newContractInfo').style.display = 'block';
+                document.getElementById('startComparisonBtn').disabled = false;
+                
+                hideComparisonError();
+            }
+        }
+
+        async function startModalComparison() {
+            if (!selectedReferenceContract || !newContractForComparison) {
+                showComparisonError('Please select both contracts');
+                return;
+            }
+
+            try {
+                showComparisonLoading(true);
+                hideComparisonError();
+
+                const formData = new FormData();
+                formData.append('newContract', newContractForComparison);
+                formData.append('referenceContractUrl', selectedReferenceContract.url);
+                formData.append('referenceContractName', selectedReferenceContract.name);
+                formData.append('useUploadedContract', 'false');
+
+                const response = await fetch('/api/compare-contracts', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Comparison failed');
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayModalComparisonResults(result.analysis);
+                } else {
+                    throw new Error(result.error || 'Comparison failed');
+                }
+
+            } catch (error) {
+                console.error('❌ Modal comparison failed:', error);
+                showComparisonError('Comparison failed: ' + error.message);
+            } finally {
+                showComparisonLoading(false);
+            }
+        }
+
+        function displayModalComparisonResults(analysis) {
+            const resultsDiv = document.getElementById('comparisonResults');
+            resultsDiv.innerHTML = '';
+            resultsDiv.style.display = 'block';
+
+            console.log('📋 Raw modal analysis received:', analysis);
+
+            // 尝试解析JSON（复用现有逻辑）
+            let jsonData = null;
+            try {
+                let cleanedAnalysis = analysis.trim();
+                cleanedAnalysis = cleanedAnalysis.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+                
+                const jsonMatch = cleanedAnalysis.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    jsonData = JSON.parse(jsonMatch[0]);
+                } else {
+                    jsonData = JSON.parse(cleanedAnalysis);
+                }
+                
+                console.log('📋 Successfully parsed modal comparison JSON');
+            } catch (e) {
+                console.warn('📋 Failed to parse modal JSON, showing raw analysis:', e.message);
+                
+                resultsDiv.innerHTML = `
+                    <div style="padding: 20px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="color: #856404; margin-bottom: 10px;">Can't parse JSON format</h4>
+                        <p style="color: #856404; margin-bottom: 10px;">Results:</p>
+                        <details style="margin-top: 10px;">
+                            <summary style="color: #856404; cursor: pointer;">Check Original Data</summary>
+                            <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 0.8em; margin-top: 10px; white-space: pre-wrap;">${analysis}</pre>
+                        </details>
+                    </div>
+                    <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; line-height: 1.6;">
+                        ${analysis.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}
+                    </div>
+                `;
+                return;
+            }
+
+            // 成功解析JSON，创建比较界面（复用现有的createSection逻辑）
+            console.log('📋 Parsed modal JSON data:', jsonData);
+            
+            const mainContainer = document.createElement('div');
+            mainContainer.style.cssText = `
+                background: #f8f9fa;
+                border-radius: 8px;
+                padding: 16px;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            `;
+
+            const titleDiv = document.createElement('div');
+            titleDiv.innerHTML = `
+                <h3 style="color: #2c3e50; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #dee2e6; font-size: 1.3em;">
+                    Contract Comparison Analysis
+                </h3>
+            `;
+            mainContainer.appendChild(titleDiv);
+
+            // 渲染每个主要部分
+            Object.entries(jsonData).forEach(([sectionKey, sectionData]) => {
+                if (typeof sectionData === 'object' && sectionData !== null) {
+                    const sectionDiv = createModalSection(sectionKey, sectionData, 0);
+                    mainContainer.appendChild(sectionDiv);
+                }
+            });
+
+            resultsDiv.appendChild(mainContainer);
+        }
+
+        // Helper functions for modal comparison
+        function hasComparisonStructure(data) {
+            if (typeof data !== 'object' || data === null) return false;
+            return data.hasOwnProperty('Reference_Contract') || data.hasOwnProperty('New_Contract');
+        }
+
+        function formatCellValue(value) {
+            if (value === null || value === undefined) return '—';
+            if (Array.isArray(value)) {
+                if (value.length > 0 && value.every(item => typeof item === 'string' && item.length <= 1)) {
+                    return value.join('');
+                }
+                return value.join(', ');
+            }
+            if (typeof value === 'object') {
+                return JSON.stringify(value, null, 2);
+            }
+            return value.toString();
+        }
+
+        function formatSectionTitle(title) {
+            return title
+                .replace(/_/g, ' ')
+                .replace(/([a-z])([A-Z])/g, '$1 $2')
+                .replace(/\b\w/g, c => c.toUpperCase());
+        }
+
+        // 为模态框创建章节（复用直接比较的逻辑）
+        function createModalSection(sectionKey, sectionData, level) {
+            const sectionDiv = document.createElement('div');
+            sectionDiv.style.cssText = `
+                margin-bottom: ${level === 0 ? '16px' : '12px'};
+                padding: ${level === 0 ? '16px' : '12px'};
+                background: ${level === 0 ? '#ffffff' : '#f1f3f4'};
+                border-radius: 6px;
+                border-left: 3px solid ${level === 0 ? '#6c757d' : '#adb5bd'};
+                box-shadow: ${level === 0 ? '0 1px 3px rgba(0,0,0,0.06)' : 'none'};
+            `;
+
+            // 创建章节标题
+            const titleDiv = document.createElement('div');
+            titleDiv.innerHTML = `
+                <h${Math.min(4 + level, 6)} style="
+                    color: #495057; 
+                    margin-bottom: 10px; 
+                    font-size: ${1.1 - level * 0.08}em;
+                    font-weight: 600;
+                ">
+                    ${formatSectionTitle(sectionKey)}
+                </h${Math.min(4 + level, 6)}>
+            `;
+            sectionDiv.appendChild(titleDiv);
+
+            // 检查是否是对比节点
+            if (hasComparisonStructure(sectionData)) {
+                const comparisonTable = createModalComparisonTable(sectionData);
+                sectionDiv.appendChild(comparisonTable);
+            } else if (typeof sectionData === 'object' && !Array.isArray(sectionData)) {
+                // 递归处理子章节
+                Object.entries(sectionData).forEach(([key, value]) => {
+                    if (typeof value === 'object' && value !== null) {
+                        const subSection = createModalSection(key, value, level + 1);
+                        sectionDiv.appendChild(subSection);
+                    } else {
+                        // 显示简单的键值对
+                        const valueDiv = document.createElement('div');
+                        valueDiv.style.cssText = `
+                            background: #e9ecef;
+                            padding: 8px 10px;
+                            border-radius: 3px;
+                            color: #495057;
+                            margin: 4px 0;
+                            font-size: 0.85em;
+                            line-height: 1.3;
+                        `;
+                        valueDiv.innerHTML = `<strong>${formatSectionTitle(key)}:</strong> ${value || '—'}`;
+                        sectionDiv.appendChild(valueDiv);
+                    }
+                });
+            } else {
+                // 显示普通值
+                const valueDiv = document.createElement('div');
+                valueDiv.style.cssText = `
+                    background: #e9ecef;
+                    padding: 8px 10px;
+                    border-radius: 3px;
+                    color: #495057;
+                    font-size: 0.85em;
+                    margin-top: 4px;
+                    line-height: 1.3;
+                `;
+                valueDiv.textContent = sectionData?.toString() || '—';
+                sectionDiv.appendChild(valueDiv);
+            }
+
+            return sectionDiv;
+        }
+
+        // 为模态框创建对比表格
+        function createModalComparisonTable(data) {
+            const table = document.createElement('div');
+            table.style.cssText = `
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 1px;
+                background: #dee2e6;
+                border-radius: 4px;
+                overflow: hidden;
+                margin-top: 6px;
+            `;
+
+            // 表头
+            ['Summary', 'Reference Contract', 'New Contract'].forEach(header => {
+                const headerCell = document.createElement('div');
+                headerCell.style.cssText = `
+                    background: #6c757d;
+                    color: white;
+                    padding: 8px 10px;
+                    font-weight: 600;
+                    font-size: 0.85em;
+                    text-align: center;
+                `;
+                headerCell.textContent = header;
+                table.appendChild(headerCell);
+            });
+
+            // 处理比较数据
+            if (data.Reference_Contract || data.New_Contract) {
+                const refData = data.Reference_Contract || {};
+                const newData = data.New_Contract || {};
+                
+                if (typeof refData === 'object' && typeof newData === 'object') {
+                    const allFields = new Set([...Object.keys(refData), ...Object.keys(newData)]);
+                    
+                    allFields.forEach(field => {
+                        addModalComparisonRow(table, field, refData[field], newData[field]);
+                    });
+                } else {
+                    addModalComparisonRow(table, 'Content', refData, newData);
+                }
+            } else {
+                Object.entries(data).forEach(([key, value]) => {
+                    if (typeof value === 'object' && value !== null) {
+                        if (value.Reference_Contract || value.New_Contract) {
+                            addModalComparisonRow(table, key, value.Reference_Contract, value.New_Contract);
+                        }
+                    }
+                });
+            }
+
+            return table;
+        }
+
+        // 为模态框添加对比行
+        function addModalComparisonRow(table, fieldName, refValue, newValue) {
+            // 字段名称
+            const fieldCell = document.createElement('div');
+            fieldCell.style.cssText = `
+                background: #e9ecef;
+                padding: 8px 10px;
+                font-weight: 500;
+                color: #495057;
+                border-right: 1px solid #dee2e6;
+                font-size: 0.85em;
+            `;
+            fieldCell.textContent = formatSectionTitle(fieldName);
+            table.appendChild(fieldCell);
+
+            const refText = formatCellValue(refValue);
+            const newText = formatCellValue(newValue);
+
+            // 参考合同值
+            const refCell = document.createElement('div');
+            refCell.style.cssText = `
+                background: #f8f9fa;
+                padding: 8px 10px;
+                color: #6c757d;
+                border-right: 1px solid #dee2e6;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 0.85em;
+                word-wrap: break-word;
+                line-height: 1.3;
+            `;
+            refCell.textContent = refText;
+            table.appendChild(refCell);
+
+            // 新合同值
+            const newCell = document.createElement('div');
+            const isDifferent = refText !== newText && newText !== '—' && refText !== '—';
+            
+            newCell.style.cssText = `
+                background: ${isDifferent ? '#E9ECEF' : '#E9ECEF'};
+                color: ${isDifferent ? '#6c757d' : '#6c757d'};
+                padding: 8px 10px;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 0.85em;
+                font-weight: ${isDifferent ? '600' : 'normal'};
+                word-wrap: break-word;
+                line-height: 1.3;
+                position: relative;
+            `;
+            
+            if (isDifferent) {
+                newCell.style.borderLeft = '3px solid white';
+            }
+            
+            newCell.textContent = newText;
+            table.appendChild(newCell);
+        }
+
+        function createComparisonTables(data) {
+            let html = '<div style="background: #f8f9fa; border-radius: 8px; padding: 16px; font-family: \'Segoe UI\', Tahoma, Geneva, Verdana, sans-serif;">';
+            html += '<h4 style="margin-bottom: 20px; color: #2c3e50;">Contract Comparison Results</h4>';
+
+            // Risk Analysis Section
+            if (data['Risk Analysis'] || data.risk_analysis || data.risks) {
+                const riskData = data['Risk Analysis'] || data.risk_analysis || data.risks;
+                html += createRiskAnalysisTable(riskData);
+            }
+
+            // Key Terms Comparison
+            if (data['Key Terms Comparison'] || data.key_terms || data.terms_comparison) {
+                const termsData = data['Key Terms Comparison'] || data.key_terms || data.terms_comparison;
+                html += createKeyTermsTable(termsData);
+            }
+
+            // Recommendations Section
+            if (data['Recommendations'] || data.recommendations) {
+                const recsData = data['Recommendations'] || data.recommendations;
+                html += createRecommendationsTable(recsData);
+            }
+
+            // Summary Section
+            if (data['Summary'] || data.summary) {
+                const summaryData = data['Summary'] || data.summary;
+                html += createSummaryTable(summaryData);
+            }
+
+            // If no structured sections found, display all data
+            if (!data['Risk Analysis'] && !data.risk_analysis && !data.risks && 
+                !data['Key Terms Comparison'] && !data.key_terms && !data.terms_comparison &&
+                !data['Recommendations'] && !data.recommendations &&
+                !data['Summary'] && !data.summary) {
+                html += createGenericDataTable(data);
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function createRiskAnalysisTable(riskData) {
+            let html = '<div style="margin-bottom: 25px;">';
+            html += '<h5 style="color: #e74c3c; margin-bottom: 15px; padding: 10px; background: #fff5f5; border-left: 4px solid #e74c3c;">🚨 Risk Analysis</h5>';
+            html += '<div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px;">';
+            html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">';
+            html += '<thead style="background: #fee2e2;"><tr>';
+            html += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #fca5a5; font-weight: 600;">Risk Category</th>';
+            html += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #fca5a5; font-weight: 600;">Details</th>';
+            html += '</tr></thead><tbody>';
+
+            const riskSections = [
+                { key: 'Higher Risk In New Contract', label: 'Higher Risk in New Contract', color: '#fee2e2' },
+                { key: 'Lower Risk In New Contract', label: 'Lower Risk in New Contract', color: '#f0fdf4' },
+                { key: 'New Risks Identified', label: 'New Risks Identified', color: '#fef3c7' },
+                { key: 'Overall Risk Assessment', label: 'Overall Risk Assessment', color: '#e0e7ff' }
+            ];
+
+            riskSections.forEach((section, index) => {
+                const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                const riskItems = riskData[section.key] || riskData[section.key.toLowerCase().replace(/ /g, '_')] || 'Not specified';
+                
+                html += `<tr style="background: ${bgColor};">`;
+                html += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6; font-weight: 600; color: #374151;">${section.label}</td>`;
+                html += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6;">`;
+                
+                if (typeof riskItems === 'object' && riskItems !== null) {
+                    if (Array.isArray(riskItems)) {
+                        riskItems.forEach((item, i) => {
+                            html += `<div style="margin-bottom: 5px;">• ${item}</div>`;
+                        });
+                    } else {
+                        Object.entries(riskItems).forEach(([key, value]) => {
+                            html += `<div style="margin-bottom: 5px;"><strong>${key}:</strong> ${value}</div>`;
+                        });
+                    }
+                } else {
+                    html += riskItems;
+                }
+                
+                html += '</td></tr>';
+            });
+
+            html += '</tbody></table></div></div>';
+            return html;
+        }
+
+        function createKeyTermsTable(termsData) {
+            let html = '<div style="margin-bottom: 25px;">';
+            html += '<h5 style="color: #3b82f6; margin-bottom: 15px; padding: 10px; background: #eff6ff; border-left: 4px solid #3b82f6;">📋 Key Terms Comparison</h5>';
+            html += '<div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px;">';
+            html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">';
+            html += '<thead style="background: #dbeafe;"><tr>';
+            html += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #93c5fd; font-weight: 600;">Term</th>';
+            html += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #93c5fd; font-weight: 600;">Reference Contract</th>';
+            html += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #93c5fd; font-weight: 600;">New Contract</th>';
+            html += '</tr></thead><tbody>';
+
+            Object.entries(termsData).forEach(([term, comparison], index) => {
+                const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                html += `<tr style="background: ${bgColor};">`;
+                html += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6; font-weight: 600;">${term}</td>`;
+                
+                if (typeof comparison === 'object' && comparison.reference !== undefined && comparison.new !== undefined) {
+                    html += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6;">${comparison.reference}</td>`;
+                    html += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6;">${comparison.new}</td>`;
+                } else {
+                    html += `<td colspan="2" style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6;">${comparison}</td>`;
+                }
+                
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div></div>';
+            return html;
+        }
+
+        function createRecommendationsTable(recsData) {
+            let html = '<div style="margin-bottom: 25px;">';
+            html += '<h5 style="color: #059669; margin-bottom: 15px; padding: 10px; background: #ecfdf5; border-left: 4px solid #059669;">💡 Recommendations</h5>';
+            html += '<div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px;">';
+            html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">';
+            html += '<thead style="background: #dcfce7;"><tr>';
+            html += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #86efac; font-weight: 600;">Category</th>';
+            html += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #86efac; font-weight: 600;">Recommendation</th>';
+            html += '</tr></thead><tbody>';
+
+            Object.entries(recsData).forEach(([category, items], index) => {
+                const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                html += `<tr style="background: ${bgColor};">`;
+                html += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6; font-weight: 600; vertical-align: top;">${category}</td>`;
+                html += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6;">`;
+                
+                if (typeof items === 'object' && items !== null) {
+                    if (Array.isArray(items)) {
+                        items.forEach((item, i) => {
+                            html += `<div style="margin-bottom: 8px; padding-left: 15px; position: relative;">`;
+                            html += `<span style="position: absolute; left: 0; color: #059669;">•</span>`;
+                            html += `${item}</div>`;
+                        });
+                    } else {
+                        Object.entries(items).forEach(([key, value]) => {
+                            html += `<div style="margin-bottom: 8px;"><strong>${key}:</strong> ${value}</div>`;
+                        });
+                    }
+                } else {
+                    html += items;
+                }
+                
+                html += '</td></tr>';
+            });
+
+            html += '</tbody></table></div></div>';
+            return html;
+        }
+
+        function createSummaryTable(summaryData) {
+            let html = '<div style="margin-bottom: 25px;">';
+            html += '<h5 style="color: #7c3aed; margin-bottom: 15px; padding: 10px; background: #f5f3ff; border-left: 4px solid #7c3aed;">📊 Summary</h5>';
+            html += '<div style="background: white; padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; line-height: 1.6;">';
+            html += typeof summaryData === 'string' ? summaryData : JSON.stringify(summaryData, null, 2);
+            html += '</div></div>';
+            return html;
+        }
+
+        function createGenericDataTable(data) {
+            let html = '<div style="margin-bottom: 25px;">';
+            html += '<h5 style="color: #6b7280; margin-bottom: 15px; padding: 10px; background: #f9fafb; border-left: 4px solid #6b7280;">📄 Comparison Details</h5>';
+            html += '<div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px;">';
+            html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">';
+            html += '<thead style="background: #f3f4f6;"><tr>';
+            html += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #d1d5db; font-weight: 600;">Property</th>';
+            html += '<th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #d1d5db; font-weight: 600;">Value</th>';
+            html += '</tr></thead><tbody>';
+
+            Object.entries(data).forEach(([key, value], index) => {
+                const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                const formattedKey = key.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                
+                html += `<tr style="background: ${bgColor};">`;
+                html += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6; font-weight: 600;">${formattedKey}</td>`;
+                html += `<td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6;">`;
+                html += typeof value === 'object' ? formatNestedData(value) : value;
+                html += '</td></tr>';
+            });
+
+            html += '</tbody></table></div></div>';
+            return html;
+        }
+
+        function formatNestedData(data) {
+            if (Array.isArray(data)) {
+                return data.map(item => `• ${item}`).join('<br>');
+            } else if (typeof data === 'object' && data !== null) {
+                return Object.entries(data).map(([k, v]) => `<strong>${k}:</strong> ${v}`).join('<br>');
+            }
+            return String(data);
+        }
+
+        function formatPlainTextAnalysis(analysis) {
+            // Parse plain text analysis and create basic table structure
+            const sections = analysis.split(/(?=Risk Analysis:|Key Terms:|Recommendations:|Summary:)/);
+            let html = '';
+            
+            sections.forEach(section => {
+                if (section.trim()) {
+                    const lines = section.trim().split('\n').filter(line => line.trim());
+                    const title = lines[0].replace(':', '');
+                    
+                    html += `<div style="margin-bottom: 20px;">`;
+                    html += `<h6 style="color: #374151; margin-bottom: 10px; font-size: 1.1em;">${title}</h6>`;
+                    html += `<div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">`;
+                    
+                    lines.slice(1).forEach(line => {
+                        if (line.trim()) {
+                            html += `<div style="margin-bottom: 8px;">${line.trim()}</div>`;
+                        }
+                    });
+                    
+                    html += `</div></div>`;
+                }
+            });
+            
+            return html;
+        }
+
+        // Helper functions for comparison modal
+        function showComparisonLoading(show) {
+            document.getElementById('comparisonLoading').style.display = show ? 'block' : 'none';
+        }
+
+        function showComparisonError(message) {
+            const errorDiv = document.getElementById('comparisonError');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideComparisonError() {
+            document.getElementById('comparisonError').style.display = 'none';
+        }
+
+        // Modal event listeners
+        document.addEventListener('click', function(event) {
+            const comparisonModal = document.getElementById('contractComparisonModal');
+            if (event.target === comparisonModal) {
+                closeComparisonModal();
+            }
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const comparisonModal = document.getElementById('contractComparisonModal');
+                if (comparisonModal && comparisonModal.style.display === 'block') {
+                    closeComparisonModal();
+                }
+            }
+        });
+
+        // Handle contract analysis file upload - displays results exactly like main tab
+        async function handleContractAnalysisUpload(input) {
+            const file = input.files?.[0];
+            if (!file) return;
+
+            console.log('📄 Contract analysis file selected:', file.name, file.type, (file.size / 1024 / 1024).toFixed(2) + 'MB');
+
+            // Show uploading state
+            const resultsDiv = document.getElementById('contractAnalysisResults');
+            const contentDiv = document.getElementById('contractAnalysisContent');
+            resultsDiv.style.display = 'block';
+            contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #6c757d;"><div style="font-size: 2em; margin-bottom: 15px;">📤</div><p>Uploading and analyzing contract...</p></div>';
+
+            try {
+                // Call contract analysis API directly (exactly same as main tab)
+                const analysisFormData = new FormData();
+                analysisFormData.append('contract', file);
+                analysisFormData.append('comparisonType', 'database'); // Use database comparison like main tab
+
+                const analysisResponse = await fetch('/api/analyze-contract', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: analysisFormData
+                });
+
+                if (!analysisResponse.ok) {
+                    throw new Error('Analysis failed');
+                }
+
+                const analysisResult = await analysisResponse.json();
+                console.log('📊 Analysis result:', analysisResult);
+
+                // Display analysis results in exactly the same format as main tab
+                displayContractAnalysisResults(analysisResult, file.name);
+
+            } catch (error) {
+                console.error('❌ Contract analysis failed:', error);
+                contentDiv.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #e74c3c;">
+                        <div style="font-size: 2em; margin-bottom: 15px;">❌</div>
+                        <p><strong>Analysis Failed</strong></p>
+                        <p style="color: #6c757d; margin-top: 10px;">Please try again or contact support if the issue persists.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Display contract analysis results exactly like main tab
+        function displayContractAnalysisResults(result, fileName) {
+            const contentDiv = document.getElementById('contractAnalysisContent');
+
+            if (!result.success) {
+                contentDiv.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #e74c3c;">
+                        <div style="font-size: 2em; margin-bottom: 15px;">❌</div>
+                        <p><strong>Analysis Failed</strong></p>
+                        <p style="color: #6c757d; margin-top: 10px;">${result.error || 'Unknown error occurred'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 完全复制main tab的displayAnalysisResults逻辑
+            const analysis = result.analysis;
+            const similarContracts = result.similarContracts || [];
+            
+            console.log('Debug - Analysis result:', result);
+            console.log('Debug - Similar contracts:', similarContracts);
+            
+            // 完全按照main tab的逻辑解析 - JSON可能在末尾
+            let contractSummary = null;
+            let analysisText = analysis;
+            
+            // 处理多种JSON格式 - 检查你提供的具体格式
+            let jsonMatch = analysis.match(/```json\s*([\s\S]*?)\s*```/);
+            if (jsonMatch) {
+                try {
+                    contractSummary = JSON.parse(jsonMatch[1]);
+                    analysisText = analysis.replace(/```json\s*[\s\S]*?\s*```/, '').trim();
+                    console.log('Debug - Parsed JSON from code block:', contractSummary);
+                } catch (e) {
+                    console.warn('Could not parse JSON from code block:', e);
+                }
+            }
+            
+            // 如果还没找到，尝试"JSON Summary:"模式
+            if (!contractSummary) {
+                const jsonSummaryMatch = analysis.match(/JSON Summary:\s*(\{[\s\S]*)/i);
+                if (jsonSummaryMatch) {
+                    try {
+                        contractSummary = JSON.parse(jsonSummaryMatch[1].trim());
+                        analysisText = analysis.replace(/JSON Summary:\s*\{[\s\S]*/, '').trim();
+                        console.log('✅ 从"JSON Summary:"部分解析JSON成功');
+                    } catch (e) {
+                        console.warn('无法解析JSON Summary部分:', e);
+                    }
+                }
+            }
+            
+            // 如果还没找到，尝试直接的JSON对象（整个内容可能是JSON）
+            if (!contractSummary) {
+                try {
+                    // Try to parse the entire analysis as JSON first
+                    contractSummary = JSON.parse(analysis.trim());
+                    analysisText = ''; // No additional text if entire content is JSON
+                    console.log('Debug - Parsed entire analysis as JSON:', contractSummary);
+                } catch (e) {
+                    // If that fails, try to find JSON object within text
+                    const directJsonMatch = analysis.match(/\{[\s\S]*?\}/);
+                    if (directJsonMatch) {
+                        try {
+                            contractSummary = JSON.parse(directJsonMatch[0]);
+                            analysisText = analysis.replace(/\{[\s\S]*?\}/, '').trim();
+                            console.log('Debug - Parsed JSON directly:', contractSummary);
+                        } catch (e2) {
+                            console.warn('Could not parse direct JSON:', e2);
+                        }
+                    }
+                }
+            }
+            
+            // 清理analysisText，移除多余的标题和格式
+            if (analysisText) {
+                analysisText = analysisText.replace(/^\*\*Contract Analysis Results for:.*?\*\*\s*/i, '');
+                analysisText = analysisText.replace(/^Detailed Analysis\s*/i, '');
+                analysisText = analysisText.trim();
+            }
+            
+            console.log('Debug - Final analysisText length:', analysisText.length);
+            console.log('Debug - Contract summary:', contractSummary);
+            
+            let summaryHtml = '';
+            if (contractSummary) {
+                summaryHtml = '<div style="background: #ffffff; border-left: 4px solid #2196f3; padding: 20px; margin-bottom: 20px; border-radius: 5px;">' +
+                    '<h4>Contract Summary</h4>' +
+                    '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">' +
+                    '<div><strong>Contract Type:</strong> ' + (contractSummary.contract_type || 'Not specified') + '</div>' +
+                    '<div><strong>Vendor:</strong> ' + (contractSummary.vendor_name || 'Not specified') + '</div>' +
+                    '<div><strong>Risk Level:</strong> ' +
+                    '<span style="padding: 4px 8px; border-radius: 12px; font-size: 0.8em; color: white; background: ' +
+                    (contractSummary.risk_level === 'high' ? '#f44336' : 
+                    contractSummary.risk_level === 'medium' ? '#ff9800' : '#4caf50') + ';">' +
+                    (contractSummary.risk_level || 'medium').toUpperCase() +
+                    '</span></div>' +
+                    '<div><strong>Estimated Value:</strong> ' + (contractSummary.estimated_value || 'Not specified') + '</div>' +
+                    '<div><strong>Currency:</strong> ' + (contractSummary.currency || 'Not specified') + '</div>' +
+                    '<div><strong>Legal Review Required:</strong> ' +
+                    '<span style="color: ' + (contractSummary.requires_legal_review ? '#f44336' : '#4caf50') + ';">' +
+                    (contractSummary.requires_legal_review ? 'YES' : 'NO') + '</span></div>' +
+                    '</div>';
+
+                // Enhanced YOY Increases Section
+                if (contractSummary.yoy_increases) {
+                    summaryHtml += '<div style="margin-top: 15px; padding: 15px; background: #F1F5F9; border-left: 4px solid #ff9800; border-radius: 5px;">' +
+                        '<h5 style="margin-bottom: 10px; color: #e65100;">Year-over-Year Increases Analysis</h5>';
+                    
+                    if (contractSummary.yoy_increases.found) {
+                        summaryHtml += '<div style="margin-bottom: 8px;"><strong>Found:</strong> <span style="color: #4caf50;">Yes</span></div>';
+                        if (contractSummary.yoy_increases.percentage) {
+                            summaryHtml += '<div style="margin-bottom: 8px;"><strong>Current Percentage:</strong> ' + contractSummary.yoy_increases.percentage + '</div>';
+                        }
+                        if (contractSummary.yoy_increases.clause_description) {
+                            summaryHtml += '<div style="margin-bottom: 8px;"><strong>Clause Details:</strong> ' + contractSummary.yoy_increases.clause_description + '</div>';
+                        }
+                        summaryHtml += '<div style="margin-bottom: 8px;"><strong>Industry Standard:</strong> ' + (contractSummary.yoy_increases.industry_standard || 'Not specified') + '</div>';
+                        summaryHtml += '<div><strong>Recommendation:</strong> ' + (contractSummary.yoy_increases.recommendation || 'No specific recommendation') + '</div>';
+                    } else {
+                        summaryHtml += '<div style="margin-bottom: 8px;"><strong>Found:</strong> <span style="color: #f44336;">No YOY increases detected</span></div>';
+                        summaryHtml += '<div style="margin-bottom: 8px;"><strong>Industry Standard:</strong> ' + (contractSummary.yoy_increases.industry_standard || 'Typically 2-5% annually') + '</div>';
+                        summaryHtml += '<div><strong>Recommendation:</strong> ' + (contractSummary.yoy_increases.recommendation || 'Consider adding reasonable annual escalation clause') + '</div>';
+                    }
+                    summaryHtml += '</div>';
+                }
+
+                // Enhanced Pricing Issues Section
+                if (contractSummary.incomplete_pricing_sections && contractSummary.incomplete_pricing_sections.length > 0) {
+                    summaryHtml += '<div style="margin-top: 15px; padding: 15px; background: #F1F5F9; border-left: 4px solid #f44336; border-radius: 5px;">' +
+                        '<h5 style="margin-bottom: 10px; color: #c62828;">Incomplete Pricing Sections</h5>' +
+                        '<p style="margin-bottom: 10px; color: #d32f2f;">The following sections mention products/services but lack clear pricing:</p>' +
+                        '<ul style="margin-bottom: 0; color: #d32f2f;">';
+                    contractSummary.incomplete_pricing_sections.forEach(section => {
+                        summaryHtml += '<li>' + section + '</li>';
+                    });
+                    summaryHtml += '</ul></div>';
+                }
+
+                // Pricing Issues
+                if (contractSummary.pricing_issues && contractSummary.pricing_issues.length > 0) {
+                    summaryHtml += '<div style="margin-top: 15px; padding: 15px; background: #F1F5F9; border-left: 4px solid #ff9800; border-radius: 5px;">' +
+                        '<h5 style="margin-bottom: 10px; color: #e65100;">Pricing Concerns</h5>' +
+                        '<ul style="margin-bottom: 0;">';
+                    contractSummary.pricing_issues.forEach(issue => {
+                        summaryHtml += '<li>' + issue + '</li>';
+                    });
+                    summaryHtml += '</ul></div>';
+                }
+                
+                if (contractSummary.key_terms && contractSummary.key_terms.length > 0) {
+                    summaryHtml += '<div style="margin-top: 15px;"><strong>Key Terms:</strong><ul style="margin-top: 5px;">';
+                    contractSummary.key_terms.forEach(term => {
+                        summaryHtml += '<li>' + term + '</li>';
+                    });
+                    summaryHtml += '</ul></div>';
+                }
+                
+                summaryHtml += '</div>';
+            }
+
+            // Similar contracts section (only for database comparison) - 完全复制main tab逻辑
+            let similarContractsHtml = '';
+            if (similarContracts && similarContracts.length > 0) {
+                similarContractsHtml = '<div style="background: #f8f9fa; border-left: 4px solid #374151; padding: 20px; margin: 20px 0; border-radius: 5px;">' +
+                    '<h4>Similar Contracts Found (Same Vendor)</h4>' +
+                    '<p style="margin-bottom: 15px; color: #6c757d;">Found ' + similarContracts.length + ' contract(s) with the same vendor in our database:</p>' +
+                    '<div style="overflow-x: auto; margin-top: 15px;">' +
+                    '<table class="contracts-table">' +
+                    '<thead><tr>' +
+                    '<th class="col-contract-id">Contract ID</th>' +
+                    '<th class="col-client">Client</th>' +
+                    '<th class="col-contract-name">Contract Name</th>' +
+                    '<th class="col-vendor">Vendor</th>' +
+                    '<th class="col-spend">Spend</th>' +
+                    '<th class="col-file">Actions</th>' +
+                    '</tr></thead><tbody>';
+                
+                similarContracts.sort((a, b) => {
+                    const spendA = parseFloat(a.spend) || 0;
+                    const spendB = parseFloat(b.spend) || 0;
+                    return spendB - spendA;
+                });
+                similarContracts.forEach(contract => {
+                    const clnumKey = parseInt(contract.clnum);
+                    const clientName = clientMapping[clnumKey] || contract.clientName || `Client ${contract.clnum || 'Unknown'}`;
+                    const attorneyDisplay = getAttorneyDisplay(clientName);
+                    
+                    const spendDisplay = contract.spend ? 
+                        (contract.currency ? contract.currency + formatNumber(contract.spend) : '$' + formatNumber(contract.spend)) : 'N/A';
+                        
+                    similarContractsHtml += '<tr>' +
+                        '<td class="col-contract-id">' + (contract.contractId || 'N/A') + '</td>' +
+                        '<td class="col-client"><strong>' + attorneyDisplay + '</strong></td>' +
+                        '<td class="col-contract-name">' + (contract.contractName || 'N/A') + '</td>' +
+                        '<td class="col-vendor">' + (contract.vendor || 'N/A') + '</td>' +
+                        '<td class="col-spend">' + spendDisplay + '</td>' +
+                        '<td class="col-file">' + 
+                        (contract.file ? 
+                            '<button onclick="previewFile(\'' + contract.file + '\')" style="background: #1e3a8a; color: white; border: none; padding: 3px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; width: 100%;">Preview</button><br>' +
+                            '<button onclick="downloadFile(\'' + contract.file + '\', \'' + (contract.contractName || 'contract') + '\')" style="background: #3b82f6; color: white; border: none; padding: 3px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; width: 100%;">Download</button><br>' +
+                            '<button onclick="compareWithNew(\'' + contract.file + '\', \'' + (contract.contractName || 'New Contract').replace(/'/g, '\\\'') + '\')" style="background: #fbbf24; color: #1f2937; border: none; padding: 3px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75em; width: 100%;">Compare</button>'
+                            : '<span style="color: #6c757d; font-size: 0.8em;">No file</span>'
+                        ) +
+                        '</td></tr>';
+                });
+                
+                similarContractsHtml += '</tbody></table></div></div>';
+            }
+
+            const formattedAnalysisText = analysisText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                                    .replace(/\* /g, '• ')
+                                                    .replace(/\n/g, '<br>');
+            const exportButtonHtml = `
+                <div style="text-align: right; margin-bottom: 20px;">
+                    <button onclick="exportContractAnalysis()" 
+                            style="background: #1e40af; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
+                        Export Report
+                    </button>
+                </div>
+            `;
+            
+            // Create user-friendly text summary before detailed JSON data
+            let textSummary = '';
+            if (contractSummary) {
+                const riskColor = contractSummary.risk_level === 'High' ? '#d32f2f' : 
+                                 contractSummary.risk_level === 'Medium' ? '#f57c00' : '#388e3c';
+                
+                textSummary = '<div style="background: #f0f8ff; border-left: 4px solid #2196f3; padding: 20px; margin: 20px 0; border-radius: 5px;">' +
+                    '<h4 style="color: #1565c0; margin-bottom: 15px;">📄 Contract Summary</h4>' +
+                    '<div style="line-height: 1.6; color: #333;">' +
+                    '<p><strong>Contract Type:</strong> ' + (contractSummary.contract_type || 'Not specified') + '</p>' +
+                    '<p><strong>Vendor:</strong> ' + (contractSummary.vendor_name || 'Not specified') + '</p>' +
+                    '<p><strong>Risk Level:</strong> <span style="font-weight: bold; color: ' + riskColor + ';">' + (contractSummary.risk_level || 'Not assessed') + '</span></p>';
+                
+                if (contractSummary.total_value) {
+                    textSummary += '<p><strong>Total Value:</strong> ' + contractSummary.total_value + '</p>';
+                }
+                if (contractSummary.contract_duration) {
+                    textSummary += '<p><strong>Duration:</strong> ' + contractSummary.contract_duration + '</p>';
+                }
+                
+                textSummary += '</div></div>';
+            }
+
+            // 完全复制main tab的显示逻辑
+            contentDiv.innerHTML = '<div class="results">' +
+                '<h3>Contract Analysis Results</h3>' +
+                exportButtonHtml +
+                textSummary +
+                summaryHtml +
+                similarContractsHtml +
+                '<div style="background: #f8f9fa; border-left: 4px solid #6c757d; padding: 20px; margin: 20px 0; border-radius: 5px;">' +
+                '<h4>Detailed Analysis</h4>' +
+                '<div>' + formattedAnalysisText + '</div>' +
+                '</div>' +
+                '</div>';
+                
+            // 隐藏分离的same vendor section，因为已经集成在主显示中
+            const separateVendorDiv = document.getElementById('sameVendorContracts');
+            if (separateVendorDiv) {
+                separateVendorDiv.style.display = 'none';
+            }
+        }
+
+        // Display same vendor contracts table exactly like main tab
+        function displaySameVendorContractsTable(contracts) {
+            const sameVendorDiv = document.getElementById('sameVendorContractsTable');
+            
+            let tableHtml = `
+                <div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                        <thead style="background: #f8f9fa;">
+                            <tr>
+                                <th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600;">Contract ID</th>
+                                <th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600;">Client Name</th>
+                                <th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600;">Spend ($)</th>
+                                <th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600;">Start Date</th>
+                                <th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600;">End Date</th>
+                                <th style="padding: 12px 8px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            contracts.forEach((contract, index) => {
+                const rawClientName = contract.client_name || contract.clname || `Client ${contract.clnum}`;
+                const attorneyDisplay = getAttorneyDisplay(rawClientName);
+                const spendDisplay = contract.spend ? formatNumber(parseFloat(contract.spend)) : '0.00';
+                const startDate = formatDateFromNumber(contract.start_date) || 'N/A';
+                const endDate = formatDateFromNumber(contract.end_date) || 'N/A';
+
+                tableHtml += `
+                    <tr style="${index % 2 === 0 ? 'background: #f9f9f9;' : 'background: white;'} border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px 8px; vertical-align: top;">${contract.contract_id || 'N/A'}</td>
+                        <td style="padding: 12px 8px; vertical-align: top;">${attorneyDisplay}</td>
+                        <td style="padding: 12px 8px; vertical-align: top; text-align: right; font-weight: 600; color: #059669;">$${spendDisplay}</td>
+                        <td style="padding: 12px 8px; vertical-align: top;">${startDate}</td>
+                        <td style="padding: 12px 8px; vertical-align: top;">${endDate}</td>
+                        <td style="padding: 8px; text-align: center; vertical-align: top;">
+                            <div style="display: flex; gap: 5px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                                <button onclick="previewFileFromChat('${contract.url}')" 
+                                        style="background: #3498db; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; display: flex; align-items: center; gap: 4px;"
+                                        title="Preview Contract">
+                                    👁️ Preview
+                                </button>
+                                <button onclick="downloadContractFile('${contract.url}', '${contract.contract_id || 'contract'}.pdf')" 
+                                        style="background: #28a745; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; display: flex; align-items: center; gap: 4px;"
+                                        title="Download Contract">
+                                    📥 Download
+                                </button>
+                                <button onclick="compareContractFromChat('${contract.url}', '${contract.contract_id || 'Contract'}')" 
+                                        style="background: #f39c12; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; display: flex; align-items: center; gap: 4px;"
+                                        title="Compare Contract">
+                                    🔄 Compare
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += '</tbody></table></div>';
+            sameVendorDiv.innerHTML = tableHtml;
+        }
+
+        // Format contract analysis content exactly like main tab
+        function formatContractAnalysisForChatbot(analysis) {
+            const jsonMatch = analysis.match(/```json\n([\s\S]*?)\n```/);
+            let contractSummary = null;
+            let analysisText = analysis;
+            
+            if (jsonMatch) {
+                try {
+                    contractSummary = JSON.parse(jsonMatch[1]);
+                    analysisText = analysis.replace(/```json\n[\s\S]*?\n```/, '').trim();
+                } catch (e) {
+                    console.warn('Could not parse JSON summary');
+                }
+            }
+
+            // Create user-friendly text summary for chatbot
+            let textSummary = '';
+            if (contractSummary) {
+                const riskColor = contractSummary.risk_level === 'high' ? '#d32f2f' : 
+                                 contractSummary.risk_level === 'medium' ? '#f57c00' : '#388e3c';
+                
+                textSummary = '<div style="background: #f0f8ff; border-left: 4px solid #2196f3; padding: 20px; margin: 15px 0; border-radius: 5px;">' +
+                    '<h4 style="color: #1565c0; margin-bottom: 15px;">📄 Contract Summary</h4>' +
+                    '<div style="line-height: 1.6; color: #333;">' +
+                    '<p><strong>Contract Type:</strong> ' + (contractSummary.contract_type || 'Not specified') + '</p>' +
+                    '<p><strong>Vendor:</strong> ' + (contractSummary.vendor_name || 'Not specified') + '</p>' +
+                    '<p><strong>Risk Level:</strong> <span style="font-weight: bold; color: ' + riskColor + ';">' + (contractSummary.risk_level || 'Not assessed') + '</span></p>';
+                
+                if (contractSummary.estimated_value) {
+                    textSummary += '<p><strong>Estimated Value:</strong> ' + contractSummary.estimated_value + '</p>';
+                }
+                if (contractSummary.currency) {
+                    textSummary += '<p><strong>Currency:</strong> ' + contractSummary.currency + '</p>';
+                }
+                if (contractSummary.requires_legal_review !== undefined) {
+                    textSummary += '<p><strong>Legal Review Required:</strong> ' + (contractSummary.requires_legal_review ? 'Yes' : 'No') + '</p>';
+                }
+                
+                textSummary += '</div></div>';
+            }
+
+            let summaryHtml = '';
+            if (contractSummary) {
+                summaryHtml = '<div style="background: #ffffff; border-left: 4px solid #2196f3; padding: 20px; margin-bottom: 20px; border-radius: 5px;">' +
+                    '<h4 style="color: #1976d2;">Contract Analysis Details</h4>' +
+                    '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">' +
+                    '<div><strong>Contract Type:</strong> ' + (contractSummary.contract_type || 'Not specified') + '</div>' +
+                    '<div><strong>Vendor:</strong> ' + (contractSummary.vendor_name || 'Not specified') + '</div>' +
+                    '<div><strong>Risk Level:</strong> ' +
+                    '<span style="padding: 4px 8px; border-radius: 12px; font-size: 0.8em; color: white; background: ' +
+                    (contractSummary.risk_level === 'high' ? '#f44336' : 
+                    contractSummary.risk_level === 'medium' ? '#ff9800' : '#4caf50') + ';">' +
+                    (contractSummary.risk_level || 'medium').toUpperCase() +
+                    '</span></div>' +
+                    '<div><strong>Estimated Value:</strong> ' + (contractSummary.estimated_value || 'Not specified') + '</div>' +
+                    '<div><strong>Currency:</strong> ' + (contractSummary.currency || 'Not specified') + '</div>' +
+                    '<div><strong>Legal Review Required:</strong> ' +
+                    '<span style="color: ' + (contractSummary.requires_legal_review ? '#f44336' : '#4caf50') + ';">' +
+                    (contractSummary.requires_legal_review ? 'YES' : 'NO') + '</span></div>' +
+                    '</div>';
+                
+                // Enhanced YOY Increases Section
+                if (contractSummary.yoy_increases) {
+                    summaryHtml += '<div style="margin-top: 15px; padding: 15px; background: #F1F5F9; border-left: 4px solid #ff9800; border-radius: 5px;">' +
+                        '<h5 style="margin-bottom: 10px; color: #e65100;">Year-over-Year Increases Analysis</h5>';
+                    
+                    if (contractSummary.yoy_increases.found) {
+                        summaryHtml += '<div style="margin-bottom: 8px;"><strong>Found:</strong> <span style="color: #4caf50;">Yes</span></div>';
+                        if (contractSummary.yoy_increases.percentage) {
+                            summaryHtml += '<div style="margin-bottom: 8px;"><strong>Current Percentage:</strong> ' + contractSummary.yoy_increases.percentage + '</div>';
+                        }
+                        if (contractSummary.yoy_increases.clause_description) {
+                            summaryHtml += '<div style="margin-bottom: 8px;"><strong>Clause Details:</strong> ' + contractSummary.yoy_increases.clause_description + '</div>';
+                        }
+                        summaryHtml += '<div style="margin-bottom: 8px;"><strong>Industry Standard:</strong> ' + (contractSummary.yoy_increases.industry_standard || 'Not specified') + '</div>';
+                        summaryHtml += '<div><strong>Recommendation:</strong> ' + (contractSummary.yoy_increases.recommendation || 'No specific recommendation') + '</div>';
+                    } else {
+                        summaryHtml += '<div style="margin-bottom: 8px;"><strong>Found:</strong> <span style="color: #f44336;">No YOY increases detected</span></div>';
+                        summaryHtml += '<div style="margin-bottom: 8px;"><strong>Industry Standard:</strong> ' + (contractSummary.yoy_increases.industry_standard || 'Typically 2-5% annually') + '</div>';
+                        summaryHtml += '<div><strong>Recommendation:</strong> ' + (contractSummary.yoy_increases.recommendation || 'Consider adding reasonable annual escalation clause') + '</div>';
+                    }
+                    summaryHtml += '</div>';
+                }
+
+                // Enhanced Pricing Issues Section
+                if (contractSummary.incomplete_pricing_sections && contractSummary.incomplete_pricing_sections.length > 0) {
+                    summaryHtml += '<div style="margin-top: 15px; padding: 15px; background: #F1F5F9; border-left: 4px solid #f44336; border-radius: 5px;">' +
+                        '<h5 style="margin-bottom: 10px; color: #c62828;">Incomplete Pricing Sections</h5>' +
+                        '<p style="margin-bottom: 10px; color: #d32f2f;">The following sections mention products/services but lack clear pricing:</p>' +
+                        '<ul style="margin-bottom: 0; color: #d32f2f;">';
+                    contractSummary.incomplete_pricing_sections.forEach(section => {
+                        summaryHtml += '<li>' + section + '</li>';
+                    });
+                    summaryHtml += '</ul></div>';
+                }
+
+                // Pricing Issues
+                if (contractSummary.pricing_issues && contractSummary.pricing_issues.length > 0) {
+                    summaryHtml += '<div style="margin-top: 15px; padding: 15px; background: #F1F5F9; border-left: 4px solid #ff9800; border-radius: 5px;">' +
+                        '<h5 style="margin-bottom: 10px; color: #e65100;">Pricing Concerns</h5>' +
+                        '<ul style="margin-bottom: 0;">';
+                    contractSummary.pricing_issues.forEach(issue => {
+                        summaryHtml += '<li>' + issue + '</li>';
+                    });
+                    summaryHtml += '</ul></div>';
+                }
+
+                // Missing Clauses Section
+                if (contractSummary.missing_clauses && contractSummary.missing_clauses.length > 0) {
+                    summaryHtml += '<div style="margin-top: 15px; padding: 15px; background: #fef2f2; border-left: 4px solid #dc2626; border-radius: 5px;">' +
+                        '<h5 style="margin-bottom: 10px; color: #dc2626;">Missing Important Clauses</h5>' +
+                        '<ul style="margin-bottom: 0; color: #7f1d1d;">';
+                    contractSummary.missing_clauses.forEach(clause => {
+                        summaryHtml += '<li>' + clause + '</li>';
+                    });
+                    summaryHtml += '</ul></div>';
+                }
+
+                // Recommendations Section
+                if (contractSummary.recommendations && contractSummary.recommendations.length > 0) {
+                    summaryHtml += '<div style="margin-top: 15px; padding: 15px; background: #ecfdf5; border-left: 4px solid #059669; border-radius: 5px;">' +
+                        '<h5 style="margin-bottom: 10px; color: #059669;">Recommendations</h5>' +
+                        '<ul style="margin-bottom: 0; color: #065f46;">';
+                    contractSummary.recommendations.forEach(rec => {
+                        summaryHtml += '<li>' + rec + '</li>';
+                    });
+                    summaryHtml += '</ul></div>';
+                }
+
+                // Risk Factors Section
+                if (contractSummary.risk_factors && contractSummary.risk_factors.length > 0) {
+                    summaryHtml += '<div style="margin-top: 15px; padding: 15px; background: #fef2f2; border-left: 4px solid #f44336; border-radius: 5px;">' +
+                        '<h5 style="margin-bottom: 10px; color: #f44336;">Risk Factors</h5>' +
+                        '<ul style="margin-bottom: 0; color: #7f1d1d;">';
+                    contractSummary.risk_factors.forEach(risk => {
+                        summaryHtml += '<li>' + risk + '</li>';
+                    });
+                    summaryHtml += '</ul></div>';
+                }
+
+                // Compliance Issues Section
+                if (contractSummary.compliance_issues && contractSummary.compliance_issues.length > 0) {
+                    summaryHtml += '<div style="margin-top: 15px; padding: 15px; background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 5px;">' +
+                        '<h5 style="margin-bottom: 10px; color: #f59e0b;">Compliance Issues</h5>' +
+                        '<ul style="margin-bottom: 0; color: #92400e;">';
+                    contractSummary.compliance_issues.forEach(issue => {
+                        summaryHtml += '<li>' + issue + '</li>';
+                    });
+                    summaryHtml += '</ul></div>';
+                }
+                
+                if (contractSummary.key_terms && contractSummary.key_terms.length > 0) {
+                    summaryHtml += '<div style="margin-top: 15px; padding: 15px; background: #f0f9ff; border-left: 4px solid #3b82f6; border-radius: 5px;">' +
+                        '<h5 style="margin-bottom: 10px; color: #3b82f6;">Key Terms</h5>' +
+                        '<ul style="margin-bottom: 0; color: #1e3a8a;">';
+                    contractSummary.key_terms.forEach(term => {
+                        summaryHtml += '<li>' + term + '</li>';
+                    });
+                    summaryHtml += '</ul></div>';
+                }
+                
+                summaryHtml += '</div>';
+            }
+
+            // Add formatted analysis text (but hide the JSON part since we already displayed it structured)
+            let cleanAnalysisText = analysisText;
+            
+            // Remove JSON Summary section if present
+            cleanAnalysisText = cleanAnalysisText.replace(/JSON Summary:[\s\S]*?`json[\s\S]*?`\s*/i, '');
+            
+            // Remove duplicate "Detailed Analysis" heading if present
+            cleanAnalysisText = cleanAnalysisText.replace(/^Detailed Analysis\s*/i, '');
+            
+            const formattedAnalysisText = cleanAnalysisText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                                    .replace(/\* /g, '• ')
+                                                    .replace(/\n/g, '<br>');
+
+            if (formattedAnalysisText.trim()) {
+                return summaryHtml + '<div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">' +
+                       '<h5 style="color: #374151; margin-bottom: 10px;">Detailed Analysis</h5>' +
+                       '<div style="line-height: 1.6;">' + formattedAnalysisText + '</div></div>';
+            } else {
+                return summaryHtml;
+            }
+        }
+    </script>
+
+    <!-- Contract Comparison Modal -->
+    <div id="contractComparisonModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; max-width: 800px; width: 90%; max-height: 80%; overflow-y: auto;">
+            <h3 style="margin-bottom: 20px; color: #2c3e50;">Contract Comparison</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div>
+                    <h4 style="color: #FBBE24;">Reference Contract</h4>
+                    <p id="referenceContractName" style="color: #2c3e50;"></p>
+                    <p style="color: #6c757d; font-size: 0.9em;">From database</p>
+                </div>
+                <div>
+                    <h4 style="color: #000000;">New Contract</h4>
+                    <input type="file" id="newContractInput" accept=".pdf,.docx,.txt" onchange="handleNewContractUpload(this)" style="margin-bottom: 10px;">
+                    <div id="newContractInfo" style="display: none; color: #2c3e50;">
+                        <p><strong>File:</strong> <span id="newContractFileName"></span></p>
+                        <p style="color: #6c757d; font-size: 0.9em;">Upload from your device</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button id="startComparisonBtn" onclick="startModalComparison()" disabled style="background: #374151; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                    Start Comparison
+                </button>
+                <button onclick="closeComparisonModal()" style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                    Cancel
+                </button>
+            </div>
+
+            <div id="comparisonLoading" style="display: none; text-align: center; padding: 20px; color: #000000;">
+                <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #000000; border-radius: 50%; border-top-color: transparent; animation: spin 1s ease-in-out infinite;"></div>
+                <p style="margin-top: 10px;">Comparing contracts...</p>
+            </div>
+
+            <div id="comparisonError" style="display: none; background: #e74c3c; color: white; padding: 10px; border-radius: 5px; margin-bottom: 10px;"></div>
+
+            <div id="comparisonResults" style="display: none;"></div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</body>
+</html>
