@@ -1,1 +1,1 @@
-# Aira AI Assistant
+# Aria AI Assistant
